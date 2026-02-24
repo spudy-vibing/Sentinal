@@ -1,0 +1,35 @@
+{
+  "ticker": "VNQ",
+  "current_price": 85.00,
+  "previous_close": 84.50,
+  "change_percent": 0.59,
+  "high_52w": 95.00,
+  "low_52w": 75.00,
+  "beta": 1.05,
+  "dividend_yield": 4.10,
+  "pe_ratio": 35.2,
+  "market_cap": 65000000000,
+  "sector": "Real Estate",
+  "industry": "REIT ETF",
+  "exchange": "NYSE",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 84.50, "volume": 4500000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 84.00, "volume": 4200000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 84.80, "volume": 4600000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 85.50, "volume": 4900000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 85.00, "volume": 4100000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 84.20, "volume": 3900000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 83.80, "volume": 3700000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 83.50, "volume": 3500000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 83.00, "volume": 3300000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 82.50, "volume": 3100000}
+  ],
+  "news_headlines": [
+    "REITs rally on rate cut expectations",
+    "Data center REITs benefit from AI infrastructure demand",
+    "Commercial real estate concerns ease slightly",
+    "Industrial REITs show resilience in Q4",
+    "Apartment REIT fundamentals remain solid"
+  ]
+}

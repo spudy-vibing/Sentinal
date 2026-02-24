@@ -1,0 +1,35 @@
+{
+  "ticker": "AAPL",
+  "current_price": 185.00,
+  "previous_close": 183.50,
+  "change_percent": 0.82,
+  "high_52w": 199.62,
+  "low_52w": 164.08,
+  "beta": 1.29,
+  "dividend_yield": 0.50,
+  "pe_ratio": 28.5,
+  "market_cap": 2850000000000,
+  "sector": "Technology",
+  "industry": "Consumer Electronics",
+  "exchange": "NASDAQ",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 183.50, "volume": 62000000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 182.00, "volume": 58000000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 184.00, "volume": 55000000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 186.00, "volume": 61000000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 188.00, "volume": 65000000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 185.50, "volume": 59000000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 183.00, "volume": 54000000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 181.00, "volume": 52000000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 180.00, "volume": 48000000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 178.00, "volume": 45000000}
+  ],
+  "news_headlines": [
+    "Apple unveils Vision Pro, sees strong initial demand",
+    "iPhone 16 production ramps up ahead of fall launch",
+    "Apple Services revenue hits record high",
+    "Warren Buffett maintains Apple as top holding",
+    "Apple expands AI capabilities in upcoming iOS"
+  ]
+}

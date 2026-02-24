@@ -1,0 +1,3170 @@
+# Sentinel — Architecture Specification
+## Agent-Driven Wealth Management Intelligence Platform
+
+**Version:** 1.0  
+**Status:** POC Design  
+**Author:** Shubham  
+**Target:** Goldman Sachs AWM AI Role Interview  
+**Build Tool:** Claude Code (Python 3.12)
+
+---
+
+## Executive Summary
+
+Sentinel is a proof-of-concept multi-agent system that continuously monitors ultra-high-net-worth (UHNW) portfolios, detects anomalies, and generates ranked, explainable recommendations through coordinated AI agents. The system demonstrates:
+
+- **Multi-agent orchestration** with conflict resolution
+- **Explainable AI** through utility function scoring
+- **Enterprise-grade security** with encryption and immutable audit trails
+- **Real-world complexity** including wash sale rules, concentration risk, tax optimization
+
+**Business Value**: Advisor productivity (10x faster portfolio analysis), client retention (proactive risk management), AUM growth (tax alpha capture), regulatory compliance (complete audit trails).
+
+---
+
+## Table of Contents
+
+1. [System Overview](#system-overview)
+2. [Architecture Layers](#architecture-layers)
+3. [Agent Design](#agent-design)
+4. [State Machine](#state-machine)
+5. [Data Models](#data-models)
+6. [Security Architecture](#security-architecture)
+7. [Conflict Resolution](#conflict-resolution)
+8. [Technology Stack](#technology-stack)
+9. [Implementation Plan](#implementation-plan)
+10. [Golden Path Demo](#golden-path-demo)
+
+---
+
+## System Overview
+
+### High-Level Architecture (Enhanced with OpenClaw Patterns)
+
+```mermaid
+graph TB
+    subgraph "Input Layer - Proactive System"
+        MKT[Market Data Events]
+        CRON[Scheduled Jobs<br/>9AM Review, EOD Tax]
+        HEARTBEAT[Heartbeat Timer<br/>30min check]
+        WEBHOOK[External Webhooks<br/>SEC, Earnings, Fed]
+    end
+    
+    subgraph "Gateway & Routing Layer"
+        GATEWAY[Typed Gateway<br/>WebSocket + Schema Validation]
+        ROUTER[Multi-Persona Router<br/>Conservative/Growth/Liquidity]
+    end
+    
+    subgraph "Session Security Boundaries"
+        MAIN[Main Session<br/>Full Access - Advisors]
+        ANALYST[Analyst Session<br/>Read-Only Sandbox]
+        CLIENT[Client Portal<br/>Own Portfolio Only]
+    end
+    
+    subgraph "Agent Reasoning Layer"
+        COORD[Coordinator Agent<br/>Claude Opus]
+        DRIFT[Portfolio Drift Agent<br/>Claude Sonnet]
+        TAX[Tax Optimization Agent<br/>Claude Sonnet]
+        SKILL[Dynamic Skill Loader<br/>Context-aware injection]
+    end
+    
+    subgraph "Context vs Memory Split"
+        CONTEXT[Hot Context<br/>Current Analysis<br/>Token-limited]
+        MEMORY[Persistent Memory<br/>Client Preferences<br/>Historical Decisions]
+        HYBRID[Hybrid Search<br/>Semantic + Keyword]
+    end
+    
+    subgraph "Storage Layer"
+        SQL[(SQLite + SQLCipher<br/>Encrypted Client Data)]
+        VECTOR[(ChromaDB<br/>Debounced Indexing)]
+        MERKLE[Merkle Chain<br/>Immutable Audit]
+    end
+    
+    subgraph "Human Interface Layer"
+        CANVAS[Canvas A2UI<br/>Interactive Dashboards]
+        CLI[Rich CLI<br/>Ranked Recommendations]
+    end
+    
+    MKT --> GATEWAY
+    CRON --> GATEWAY
+    HEARTBEAT --> GATEWAY
+    WEBHOOK --> GATEWAY
+    
+    GATEWAY --> ROUTER
+    ROUTER --> MAIN
+    ROUTER --> ANALYST
+    ROUTER --> CLIENT
+    
+    MAIN --> COORD
+    ANALYST --> COORD
+    CLIENT --> COORD
+    
+    COORD --> SKILL
+    SKILL --> DRIFT
+    SKILL --> TAX
+    
+    DRIFT --> CONTEXT
+    TAX --> CONTEXT
+    CONTEXT --> MEMORY
+    MEMORY --> HYBRID
+    HYBRID --> VECTOR
+    
+    COORD --> CANVAS
+    COORD --> CLI
+    
+    CANVAS --> MERKLE
+    CLI --> MERKLE
+    
+    CONTEXT -.-> SQL
+    MEMORY -.-> SQL
+```
+
+### Core Principle: Gateway-Mediated Agent Communication
+
+```mermaid
+graph TB
+    subgraph "Input Sources"
+        MSG[User Messages]
+        TIMER[Scheduled Events]
+        EXT[External Triggers]
+    end
+    
+    subgraph "Gateway Layer"
+        GATEWAY[Typed Gateway<br/>Schema Validation<br/>Queue Management]
+    end
+    
+    subgraph "Agent Orchestration"
+        COORD[Coordinator]
+        DRIFT[Drift Agent]
+        TAX[Tax Agent]
+    end
+    
+    subgraph "Context Management"
+        HOT[Hot Context<br/>Current State]
+        COLD[Cold Storage<br/>Historical Memory]
+    end
+    
+    MSG --> GATEWAY
+    TIMER --> GATEWAY
+    EXT --> GATEWAY
+    
+    GATEWAY -->|Validated Request| COORD
+    COORD -->|Parallel Dispatch| DRIFT
+    COORD -->|Parallel Dispatch| TAX
+    
+    DRIFT -->|Findings + Context Ref| COORD
+    TAX -->|Findings + Context Ref| COORD
+    
+    COORD --> HOT
+    HOT -.Flush on Limit.-> COLD
+    COLD -.Retrieval.-> HOT
+    
+    style GATEWAY fill:#ff6b6b,color:#fff
+    style COORD fill:#4a90e2,color:#fff
+    style DRIFT fill:#7ed321,color:#fff
+    style TAX fill:#f5a623,color:#fff
+    style HOT fill:#ffd93d,color:#000
+    style COLD fill:#a8dadc,color:#000
+```
+
+**Design Rationale** (Enhanced):
+- **Gateway as Single Entry Point**: All inputs (messages, timers, webhooks) flow through typed gateway
+- **Schema Validation**: Prevents malformed requests from reaching agents
+- **Context/Memory Split**: Hot context (expensive tokens) vs cold memory (cheap storage)
+- **Sub-agents Never Communicate Directly**: Prevents circular dependencies, state sync issues
+- **Queue Management**: Serializes requests per session to prevent race conditions
+
+---
+
+## Architecture Layers
+
+### OpenClaw-Inspired Enhancements
+
+Before diving into the detailed layer specifications, here are the key architectural patterns adapted from OpenClaw that make Sentinel more robust, proactive, and production-ready:
+
+#### 1. Typed Gateway Layer
+
+**Purpose**: Single entry point for all inputs with schema validation and queue management.
+
+**Implementation**:
+```python
+from typing import Protocol, TypedDict, Literal
+from pydantic import BaseModel, Field
+import asyncio
+from datetime import datetime
+
+class InputEvent(BaseModel):
+    """Base class for all system inputs"""
+    event_id: str
+    event_type: Literal["market_event", "heartbeat", "cron", "webhook", "message"]
+    timestamp: datetime
+    session_id: str
+    priority: int = Field(ge=0, le=10, default=5)
+
+class MarketEventInput(InputEvent):
+    event_type: Literal["market_event"] = "market_event"
+    affected_sectors: list[str]
+    magnitude: float
+    description: str
+
+class HeartbeatInput(InputEvent):
+    event_type: Literal["heartbeat"] = "heartbeat"
+    portfolio_ids: list[str]
+
+class CronJobInput(InputEvent):
+    event_type: Literal["cron"] = "cron"
+    job_type: Literal["daily_review", "eod_tax", "quarterly_rebalance"]
+    instructions: str
+
+class Gateway:
+    """Typed gateway for all system inputs"""
+    
+    def __init__(self):
+        self.queues: dict[str, asyncio.Queue] = {}  # Per-session queues
+        self.handlers: dict[str, callable] = {}
+        self.merkle_chain = MerkleChain()
+    
+    async def submit(self, event: InputEvent) -> str:
+        """
+        Submit event to gateway with validation.
+        Returns: event_id for tracking
+        """
+        # Schema validation happens at Pydantic level
+        
+        # Get or create session queue
+        if event.session_id not in self.queues:
+            self.queues[event.session_id] = asyncio.Queue()
+        
+        # Enqueue with priority
+        await self.queues[event.session_id].put((event.priority, event))
+        
+        # Log to Merkle chain
+        self.merkle_chain.add_block({
+            "action": "event_received",
+            "event_id": event.event_id,
+            "event_type": event.event_type,
+            "session_id": event.session_id
+        })
+        
+        return event.event_id
+    
+    async def process_session(self, session_id: str):
+        """Process events for a session serially"""
+        queue = self.queues[session_id]
+        
+        while True:
+            priority, event = await queue.get()
+            
+            # Route to appropriate handler
+            handler = self.handlers.get(event.event_type)
+            if handler:
+                try:
+                    await handler(event)
+                except Exception as e:
+                    self.merkle_chain.add_block({
+                        "action": "event_error",
+                        "event_id": event.event_id,
+                        "error": str(e)
+                    })
+            
+            queue.task_done()
+
+# Usage
+gateway = Gateway()
+
+# Register handlers
+gateway.handlers["market_event"] = orchestrator.handle_market_event
+gateway.handlers["heartbeat"] = orchestrator.handle_heartbeat
+gateway.handlers["cron"] = orchestrator.handle_cron_job
+
+# Submit events
+await gateway.submit(MarketEventInput(
+    event_id="evt_001",
+    timestamp=datetime.utcnow(),
+    session_id="advisor:main",
+    affected_sectors=["Technology"],
+    magnitude=-0.04,
+    description="Tech sector selloff"
+))
+```
+
+#### 2. Proactive Input System
+
+**Purpose**: Enable proactive portfolio monitoring beyond reactive market events.
+
+**Input Types**:
+
+1. **Heartbeats** (Every 30 minutes):
+   ```python
+   @dataclass
+   class HeartbeatConfig:
+       interval_minutes: int = 30
+       portfolios_to_check: list[str]
+       suppress_no_action: bool = True  # Don't notify if nothing to do
+   
+   async def heartbeat_loop(gateway: Gateway, config: HeartbeatConfig):
+       """Proactive portfolio check every N minutes"""
+       while True:
+           await asyncio.sleep(config.interval_minutes * 60)
+           
+           event = HeartbeatInput(
+               event_id=f"heartbeat_{datetime.utcnow().isoformat()}",
+               timestamp=datetime.utcnow(),
+               session_id="system:heartbeat",
+               portfolio_ids=config.portfolios_to_check
+           )
+           
+           await gateway.submit(event)
+   ```
+
+2. **Cron Jobs** (Scheduled daily/weekly tasks):
+   ```python
+   from apscheduler.schedulers.asyncio import AsyncIOScheduler
+   
+   scheduler = AsyncIOScheduler()
+   
+   # Daily 9 AM portfolio review
+   scheduler.add_job(
+       lambda: gateway.submit(CronJobInput(
+           event_id=f"daily_review_{datetime.utcnow().date()}",
+           timestamp=datetime.utcnow(),
+           session_id="advisor:main",
+           job_type="daily_review",
+           instructions="Review all portfolios for overnight drift"
+       )),
+       trigger="cron",
+       hour=9,
+       minute=0
+   )
+   
+   # EOD tax reconciliation
+   scheduler.add_job(
+       lambda: gateway.submit(CronJobInput(
+           event_id=f"eod_tax_{datetime.utcnow().date()}",
+           timestamp=datetime.utcnow(),
+           session_id="advisor:main",
+           job_type="eod_tax",
+           instructions="Reconcile tax lots and check wash sales"
+       )),
+       trigger="cron",
+       hour=16,
+       minute=30  # After market close
+   )
+   ```
+
+3. **Webhooks** (External system triggers):
+   ```python
+   from fastapi import FastAPI, Request
+   
+   app = FastAPI()
+   
+   @app.post("/webhooks/sec_filing")
+   async def sec_filing_webhook(request: Request):
+       """SEC EDGAR filing notification"""
+       data = await request.json()
+       
+       # Check if filing affects any portfolio holdings
+       affected_tickers = extract_tickers_from_filing(data)
+       
+       if affected_tickers:
+           event = WebhookInput(
+               event_id=f"sec_{data['accession_number']}",
+               timestamp=datetime.utcnow(),
+               session_id="advisor:main",
+               source="sec_edgar",
+               payload=data
+           )
+           await gateway.submit(event)
+       
+       return {"status": "received"}
+   
+   @app.post("/webhooks/earnings")
+   async def earnings_webhook(request: Request):
+       """Earnings release notification"""
+       # Similar pattern for earnings surprises
+       pass
+   ```
+
+4. **Agent-to-Agent** (Workflow chaining):
+   ```python
+   class CoordinatorAgent:
+       async def handle_drift_completion(self, drift_result: dict):
+           """After drift analysis, trigger tax agent with context"""
+           
+           # Extract tickers that need rebalancing
+           tickers_to_sell = [
+               t["ticker"] for t in drift_result["recommended_trades"]
+               if t["action"] == "sell"
+           ]
+           
+           # Queue tax analysis with specific context
+           event = AgentMessageInput(
+               event_id=f"a2a_tax_{datetime.utcnow().isoformat()}",
+               timestamp=datetime.utcnow(),
+               session_id=self.session_id,
+               from_agent="drift_agent",
+               to_agent="tax_agent",
+               context={
+                   "proposed_sales": tickers_to_sell,
+                   "urgency": drift_result["urgency_score"],
+                   "reason": "drift_rebalancing"
+               }
+           )
+           
+           await self.gateway.submit(event)
+   ```
+
+#### 3. Context vs Memory Architecture
+
+**Purpose**: Separate expensive, token-limited context from cheap, persistent memory.
+
+**Implementation**:
+
+```python
+from typing import Optional
+import json
+from pathlib import Path
+
+class ContextManager:
+    """Manages hot context (token-limited) with automatic memory flushing"""
+    
+    def __init__(self, max_tokens: int = 100_000):
+        self.max_tokens = max_tokens
+        self.current_context: list[dict] = []
+        self.token_count = 0
+        self.memory = PersistentMemory()
+    
+    def add_to_context(self, item: dict, estimated_tokens: int):
+        """Add item to context with automatic flush on limit"""
+        
+        # Check if adding would exceed limit
+        if self.token_count + estimated_tokens > self.max_tokens:
+            self._flush_to_memory()
+        
+        self.current_context.append(item)
+        self.token_count += estimated_tokens
+    
+    def _flush_to_memory(self):
+        """
+        Extract key facts from context and persist to memory before compaction
+        """
+        # Extract facts (simplified - use LLM in production)
+        facts_to_persist = []
+        
+        for item in self.current_context:
+            if item.get("type") == "decision":
+                facts_to_persist.append({
+                    "fact": item["summary"],
+                    "timestamp": item["timestamp"],
+                    "context": "portfolio_decision"
+                })
+        
+        # Persist to long-term memory
+        self.memory.add_facts(facts_to_persist)
+        
+        # Compact context (summarize, keep only recent)
+        self.current_context = self._compact_context(self.current_context)
+        self.token_count = self._estimate_tokens(self.current_context)
+    
+    def _compact_context(self, context: list[dict]) -> list[dict]:
+        """Summarize old context, keep recent verbatim"""
+        # Keep last 10 items verbatim
+        recent = context[-10:]
+        
+        # Summarize older items
+        older = context[:-10]
+        summary = {
+            "type": "compacted_summary",
+            "item_count": len(older),
+            "summary": "... (compacted for brevity)",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        return [summary] + recent
+
+class PersistentMemory:
+    """Long-term memory with hybrid search"""
+    
+    def __init__(self, base_path: str = "~/.sentinel/memory"):
+        self.base_path = Path(base_path).expanduser()
+        self.base_path.mkdir(parents=True, exist_ok=True)
+        
+        # Daily log (append-only)
+        self.daily_log = self.base_path / f"{datetime.utcnow().date()}.md"
+        
+        # Long-term facts
+        self.facts_file = self.base_path / "MEMORY.md"
+        
+        # Vector store for semantic search
+        self.vector_store = chromadb.Client()
+        self.collection = self.vector_store.get_or_create_collection("memory")
+    
+    def add_facts(self, facts: list[dict]):
+        """Persist facts to long-term memory with debounced indexing"""
+        
+        # Append to daily log (immediate)
+        with open(self.daily_log, "a") as f:
+            for fact in facts:
+                f.write(f"\n## {fact['timestamp']}\n{fact['fact']}\n")
+        
+        # Add to facts file (deduplicated)
+        self._merge_to_facts(facts)
+        
+        # Schedule vector indexing (debounced)
+        self._schedule_reindex()
+    
+    def _schedule_reindex(self):
+        """Debounce vector indexing to avoid thrashing"""
+        # Use asyncio or celery to debounce
+        # Only reindex if no new writes for 60 seconds
+        pass
+    
+    def search(self, query: str, hybrid: bool = True) -> list[dict]:
+        """Hybrid search: semantic + keyword"""
+        
+        if hybrid:
+            # Semantic search via embeddings
+            semantic_results = self.collection.query(
+                query_texts=[query],
+                n_results=5
+            )
+            
+            # Keyword search via grep/ripgrep
+            keyword_results = self._keyword_search(query)
+            
+            # Merge and deduplicate
+            return self._merge_results(semantic_results, keyword_results)
+        else:
+            # Semantic only
+            return self.collection.query(query_texts=[query], n_results=10)
+    
+    def _keyword_search(self, query: str) -> list[dict]:
+        """Fast keyword search in markdown files"""
+        import subprocess
+        
+        # Use ripgrep for fast search
+        result = subprocess.run(
+            ["rg", "--json", query, str(self.base_path)],
+            capture_output=True,
+            text=True
+        )
+        
+        # Parse and return
+        return self._parse_rg_output(result.stdout)
+```
+
+**Usage Pattern**:
+```python
+# During agent execution
+context_mgr = ContextManager(max_tokens=100_000)
+
+# Add current analysis to hot context
+context_mgr.add_to_context({
+    "type": "agent_output",
+    "agent": "drift_agent",
+    "output": drift_result,
+    "timestamp": datetime.utcnow().isoformat()
+}, estimated_tokens=5_000)
+
+# Later, retrieve from persistent memory
+similar_drifts = context_mgr.memory.search(
+    "portfolio drift in technology sector",
+    hybrid=True
+)
+```
+
+#### 4. Session-Based Security Boundaries
+
+**Purpose**: Isolate different user types with appropriate permissions.
+
+**Implementation**:
+
+```python
+from enum import Enum
+import docker
+
+class SessionType(Enum):
+    ADVISOR_MAIN = "advisor:main"  # Full access
+    ANALYST = "analyst"            # Read-only, sandboxed
+    CLIENT_PORTAL = "client"       # Own portfolio only
+    SYSTEM = "system"              # Internal processes
+
+class SessionConfig(BaseModel):
+    session_id: str
+    session_type: SessionType
+    allowed_portfolios: Optional[list[str]] = None
+    sandbox_mode: bool = True
+    max_tool_calls: int = 10
+    rbac_context: RBACContext
+
+class SandboxedExecution:
+    """Execute untrusted sessions in Docker containers"""
+    
+    def __init__(self):
+        self.docker_client = docker.from_env()
+    
+    async def execute_in_sandbox(
+        self,
+        session_config: SessionConfig,
+        agent_code: callable
+    ):
+        """Run agent in ephemeral Docker container"""
+        
+        if session_config.session_type == SessionType.ADVISOR_MAIN:
+            # Trusted session - run on host
+            return await agent_code()
+        
+        # Untrusted - run in Docker
+        container = self.docker_client.containers.run(
+            image="sentinel-agent-runtime",
+            command=["python", "-c", serialize(agent_code)],
+            detach=True,
+            mem_limit="512m",
+            network_mode="none",  # No network access
+            volumes={
+                "/tmp/sentinel-workspace": {
+                    "bind": "/workspace",
+                    "mode": "rw"
+                }
+            },
+            remove=True  # Auto-delete after execution
+        )
+        
+        # Wait for completion
+        result = container.wait()
+        logs = container.logs().decode()
+        
+        return json.loads(logs)
+
+# Usage
+session_mgr = SessionConfig(
+    session_id="analyst_001",
+    session_type=SessionType.ANALYST,
+    allowed_portfolios=["UHNW_001"],  # Specific access
+    sandbox_mode=True,
+    max_tool_calls=5,  # Rate limiting
+    rbac_context=RBACContext(Role.ANALYST)
+)
+
+sandbox = SandboxedExecution()
+result = await sandbox.execute_in_sandbox(
+    session_mgr,
+    lambda: drift_agent.analyze("UHNW_001")
+)
+```
+
+#### 5. Dynamic Skill Injection
+
+**Purpose**: Load only relevant skills into context to save tokens.
+
+**Implementation**:
+
+```python
+class SkillRegistry:
+    """Lazy-loading skill registry with context awareness"""
+    
+    def __init__(self, skills_path: str = "~/.sentinel/skills"):
+        self.skills_path = Path(skills_path).expanduser()
+        self.skill_index: dict[str, dict] = {}
+        self._build_index()
+    
+    def _build_index(self):
+        """Index all available skills"""
+        for skill_dir in self.skills_path.iterdir():
+            if skill_dir.is_dir():
+                skill_md = skill_dir / "SKILL.md"
+                if skill_md.exists():
+                    metadata = self._parse_skill_metadata(skill_md)
+                    self.skill_index[skill_dir.name] = {
+                        "path": skill_md,
+                        "triggers": metadata.get("triggers", []),
+                        "token_cost": metadata.get("token_cost", 1000)
+                    }
+    
+    def discover_relevant_skills(
+        self,
+        context: dict,
+        token_budget: int = 10_000
+    ) -> list[str]:
+        """Discover which skills to inject based on context"""
+        
+        relevant_skills = []
+        total_tokens = 0
+        
+        # Check each skill's triggers
+        for skill_name, skill_meta in self.skill_index.items():
+            if self._is_relevant(skill_meta["triggers"], context):
+                cost = skill_meta["token_cost"]
+                
+                if total_tokens + cost <= token_budget:
+                    relevant_skills.append(skill_name)
+                    total_tokens += cost
+                else:
+                    break  # Budget exceeded
+        
+        return relevant_skills
+    
+    def _is_relevant(self, triggers: list[str], context: dict) -> bool:
+        """Check if skill is relevant to current context"""
+        
+        # Example: concentration risk skill triggered by position >15%
+        if "concentration_risk" in triggers:
+            max_position = max(
+                h.portfolio_weight for h in context.get("holdings", [])
+            )
+            return max_position > 0.15
+        
+        # Wash sale skill triggered by recent sales
+        if "wash_sale" in triggers:
+            recent_sales = context.get("recent_transactions", [])
+            return len([t for t in recent_sales if t["type"] == "sell"]) > 0
+        
+        return False
+    
+    def load_skill(self, skill_name: str) -> str:
+        """Load skill content"""
+        skill_path = self.skill_index[skill_name]["path"]
+        return skill_path.read_text()
+
+# Usage in agent prompt construction
+skill_registry = SkillRegistry()
+
+# Discover relevant skills for current context
+context = {
+    "holdings": portfolio.holdings,
+    "recent_transactions": get_transactions(days=30)
+}
+
+relevant_skills = skill_registry.discover_relevant_skills(
+    context,
+    token_budget=10_000
+)
+
+# Inject only relevant skills into prompt
+skill_content = "\n\n".join([
+    f"## {skill}\n{skill_registry.load_skill(skill)}"
+    for skill in relevant_skills
+])
+
+drift_prompt = DRIFT_AGENT_PROMPT + "\n\nRELEVANT SKILLS:\n" + skill_content
+```
+
+#### 6. Canvas (Agent-to-UI) for Interactive Recommendations
+
+**Purpose**: Generate interactive UI elements that advisors can manipulate.
+
+**Implementation**:
+
+```python
+class CanvasGenerator:
+    """Generate interactive HTML with a2ui attributes"""
+    
+    def generate_recommendation_ui(
+        self,
+        scenarios: list[dict],
+        utility_scores: list[dict]
+    ) -> str:
+        """Generate interactive recommendation dashboard"""
+        
+        html = """
+        <div class="sentinel-canvas">
+            <h2>Portfolio Rebalancing Recommendations</h2>
+            
+            <div class="scenario-selector">
+        """
+        
+        for i, (scenario, score) in enumerate(zip(scenarios, utility_scores), 1):
+            html += f"""
+            <div class="scenario-card" data-scenario-id="{scenario['scenario_id']}">
+                <div class="scenario-header">
+                    <h3>Option {i}: {scenario['title']}</h3>
+                    <span class="utility-score">{score['total_score']:.1f}/100</span>
+                </div>
+                
+                <div class="action-steps">
+                    {self._render_action_steps(scenario['action_steps'])}
+                </div>
+                
+                <div class="trade-controls">
+                    <label>Rebalancing Intensity:</label>
+                    <input type="range" 
+                           min="0" 
+                           max="100" 
+                           value="100"
+                           a2ui-action="adjust_intensity"
+                           a2ui-scenario="{scenario['scenario_id']}" />
+                    <span class="intensity-value">100%</span>
+                </div>
+                
+                <div class="actions">
+                    <button a2ui-action="approve" 
+                            a2ui-scenario="{scenario['scenario_id']}"
+                            class="btn-primary">
+                        Approve
+                    </button>
+                    <button a2ui-action="whatif" 
+                            a2ui-scenario="{scenario['scenario_id']}"
+                            class="btn-secondary">
+                        Run What-If
+                    </button>
+                </div>
+            </div>
+            """
+        
+        html += """
+            </div>
+        </div>
+        
+        <script>
+            // Handle a2ui-action clicks
+            document.querySelectorAll('[a2ui-action]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    const action = e.target.getAttribute('a2ui-action');
+                    const scenarioId = e.target.getAttribute('a2ui-scenario');
+                    
+                    // Send tool call back to agent
+                    window.sentinelAPI.toolCall({
+                        tool: 'handle_ui_action',
+                        action: action,
+                        scenario_id: scenarioId,
+                        parameters: getUIState()
+                    });
+                });
+            });
+            
+            // Handle range slider changes
+            document.querySelectorAll('[a2ui-action="adjust_intensity"]').forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const intensity = e.target.value;
+                    const scenarioId = e.target.getAttribute('a2ui-scenario');
+                    
+                    // Update display
+                    e.target.nextElementSibling.textContent = intensity + '%';
+                    
+                    // Trigger real-time recalculation
+                    window.sentinelAPI.toolCall({
+                        tool: 'recalculate_scenario',
+                        scenario_id: scenarioId,
+                        intensity: parseInt(intensity) / 100
+                    });
+                });
+            });
+        </script>
+        """
+        
+        return html
+    
+    def _render_action_steps(self, steps: list[dict]) -> str:
+        """Render action steps as interactive elements"""
+        html = "<ol class='action-steps'>"
+        
+        for step in steps:
+            html += f"""
+            <li>
+                <strong>{step['action']}</strong> {step['ticker']}
+                <span class="quantity">Qty: {step['quantity']:,.0f}</span>
+                <span class="timing">{step['timing']}</span>
+            </li>
+            """
+        
+        html += "</ol>"
+        return html
+
+# Agent receives UI action as tool call
+class CoordinatorAgent:
+    def handle_ui_action(self, action: str, scenario_id: str, parameters: dict):
+        """Handle actions from Canvas UI"""
+        
+        if action == "approve":
+            return self._approve_scenario(scenario_id)
+        
+        elif action == "whatif":
+            # User clicked "What-If" - run alternative analysis
+            intensity = parameters.get("intensity", 1.0)
+            return self._run_whatif(scenario_id, intensity)
+        
+        elif action == "adjust_intensity":
+            # Real-time slider adjustment - recalculate outcomes
+            intensity = parameters["intensity"]
+            return self._recalculate_with_intensity(scenario_id, intensity)
+```
+
+#### 7. Multi-Persona Routing
+
+**Purpose**: Different client types get different agent personalities.
+
+**Implementation**:
+
+```python
+class PersonaRouter:
+    """Route to different agent personas based on client profile"""
+    
+    PERSONAS = {
+        "conservative": {
+            "model": "claude-sonnet-4-5",
+            "system_prompt_suffix": """
+            PERSONA: Risk-Averse Advisor
+            - Emphasize capital preservation over growth
+            - Flag ANY concentration risk >10%
+            - Recommend treasury/AAA bonds for stability
+            - Use conservative language ("cautious", "prudent")
+            """,
+            "utility_weights": UtilityWeights(
+                risk_reduction=0.40,
+                tax_savings=0.20,
+                goal_alignment=0.20,
+                transaction_cost=0.15,
+                urgency=0.05
+            )
+        },
+        "moderate_growth": {
+            "model": "claude-opus-4-5",
+            "system_prompt_suffix": """
+            PERSONA: Balanced Growth Advisor
+            - Balance risk and return
+            - Prioritize tax efficiency
+            - Concentration limit: 15%
+            - Neutral, professional tone
+            """,
+            "utility_weights": UtilityWeights(
+                risk_reduction=0.25,
+                tax_savings=0.30,
+                goal_alignment=0.25,
+                transaction_cost=0.10,
+                urgency=0.10
+            )
+        },
+        "aggressive": {
+            "model": "claude-opus-4-5",
+            "system_prompt_suffix": """
+            PERSONA: Growth-Focused Advisor
+            - Emphasize long-term appreciation
+            - Accept higher volatility for returns
+            - Concentration limit: 20%
+            - Direct, action-oriented language
+            """,
+            "utility_weights": UtilityWeights(
+                risk_reduction=0.15,
+                tax_savings=0.20,
+                goal_alignment=0.30,
+                transaction_cost=0.10,
+                urgency=0.25
+            )
+        }
+    }
+    
+    def route_to_persona(self, client_profile: dict) -> dict:
+        """Select appropriate persona based on risk profile"""
+        risk_tolerance = client_profile["risk_tolerance"]
+        return self.PERSONAS[risk_tolerance]
+    
+    def build_personalized_prompt(
+        self,
+        base_prompt: str,
+        client_profile: dict
+    ) -> str:
+        """Inject persona into prompt"""
+        persona = self.route_to_persona(client_profile)
+        return base_prompt + "\n\n" + persona["system_prompt_suffix"]
+
+# Usage
+router = PersonaRouter()
+
+client = {"risk_tolerance": "conservative"}
+persona = router.route_to_persona(client)
+
+# Drift agent uses conservative persona
+drift_prompt = router.build_personalized_prompt(
+    DRIFT_AGENT_PROMPT,
+    client
+)
+
+drift_agent = PortfolioDriftAgent(
+    model=persona["model"],
+    prompt=drift_prompt,
+    utility_weights=persona["utility_weights"]
+)
+```
+
+---
+
+## Architecture Layers
+
+### Layer 1: Data Ingestion
+
+**Purpose**: Provide deterministic, realistic market data and portfolio snapshots for reproducible demos.
+
+#### Components
+
+**Market Data Cache**
+- **Source**: Alpha Vantage / IEX Cloud APIs
+- **Storage**: JSON files with timestamps
+- **Scope**: 
+  - Daily OHLCV for S&P 500 constituents (3 months history)
+  - Sector indices (XLK, XLF, XLE, etc.)
+  - Fixed income benchmarks (AGG, TLT, LQD)
+- **Refresh**: Pre-cached, not live (POC constraint)
+
+**Synthetic Portfolios** (See [Data Models](#data-models) for schema)
+
+| Portfolio | AUM | Risk Profile | Key Characteristics |
+|-----------|-----|--------------|---------------------|
+| **Portfolio A** | $50M | Growth UHNW | 35% US equities (tech heavy), 15% intl, 20% fixed income, 20% alternatives, 5% structured, 5% cash |
+| **Portfolio B** | $80M | Conservative UHNW | 20% US equities (dividend), 10% intl, 40% fixed income, 15% alternatives, 10% structured, 5% cash |
+| **Portfolio C** | $30M | Liquidity Event | Single-stock concentration (post-option exercise), needs tax-sensitive diversification |
+
+**Client Risk Profiles**
+```python
+{
+    "client_id": "UHNW_001",
+    "risk_tolerance": "moderate_growth",  # conservative | moderate_growth | aggressive
+    "tax_sensitivity": 0.85,  # 0.0-1.0 scale
+    "liquidity_needs": {
+        "annual_draw": 1_500_000,  # $1.5M/year
+        "emergency_reserve_months": 24
+    },
+    "constraints": [
+        {"type": "wash_sale_tracking", "enabled": true},
+        {"type": "max_single_position", "threshold": 0.15},
+        {"type": "esg_exclusions", "sectors": ["tobacco", "weapons"]}
+    ]
+}
+```
+
+---
+
+### Layer 2: Encrypted Storage & Retrieval
+
+#### SQLite + Envelope Encryption
+
+**Schema Design**
+
+```sql
+-- Portfolios table
+CREATE TABLE portfolios (
+    portfolio_id TEXT PRIMARY KEY,
+    client_id TEXT NOT NULL,
+    aum_usd REAL NOT NULL,
+    risk_profile TEXT NOT NULL,
+    target_allocation BLOB,  -- Encrypted JSON
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Holdings table
+CREATE TABLE holdings (
+    holding_id TEXT PRIMARY KEY,
+    portfolio_id TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    cost_basis REAL NOT NULL,
+    acquisition_date DATE NOT NULL,
+    current_value REAL,
+    market_price REAL,
+    asset_class TEXT,  -- equity | fixed_income | alternative | structured | cash
+    sector TEXT,
+    encrypted_notes BLOB,  -- PII/sensitive data
+    FOREIGN KEY (portfolio_id) REFERENCES portfolios(portfolio_id)
+);
+
+-- Tax lots table (for wash sale tracking)
+CREATE TABLE tax_lots (
+    lot_id TEXT PRIMARY KEY,
+    holding_id TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    purchase_price REAL NOT NULL,
+    purchase_date DATE NOT NULL,
+    sale_date DATE,
+    sale_price REAL,
+    realized_gain_loss REAL,
+    holding_period_days INTEGER,
+    FOREIGN KEY (holding_id) REFERENCES holdings(holding_id)
+);
+
+-- Transactions table
+CREATE TABLE transactions (
+    transaction_id TEXT PRIMARY KEY,
+    portfolio_id TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    transaction_type TEXT,  -- buy | sell | dividend | rebalance
+    quantity REAL NOT NULL,
+    price REAL NOT NULL,
+    transaction_date TIMESTAMP NOT NULL,
+    tax_lot_id TEXT,
+    wash_sale_flag BOOLEAN DEFAULT 0,
+    FOREIGN KEY (portfolio_id) REFERENCES portfolios(portfolio_id)
+);
+
+-- Client profiles table
+CREATE TABLE client_profiles (
+    client_id TEXT PRIMARY KEY,
+    encrypted_pii BLOB NOT NULL,  -- Name, SSN, address
+    risk_tolerance TEXT NOT NULL,
+    tax_sensitivity REAL,
+    liquidity_needs BLOB,  -- Encrypted JSON
+    constraints BLOB  -- Encrypted JSON
+);
+```
+
+**Encryption Strategy**
+
+```python
+# Envelope Encryption Pattern
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
+
+class EnvelopeEncryption:
+    def __init__(self, master_key_path: str):
+        # Master key stored in environment/KMS (not in repo)
+        self.master_key = self._load_master_key(master_key_path)
+    
+    def encrypt_field(self, plaintext: str) -> dict:
+        # Generate unique data encryption key (DEK) per field
+        dek = AESGCM.generate_key(bit_length=256)
+        aesgcm = AESGCM(dek)
+        nonce = os.urandom(12)
+        
+        # Encrypt plaintext with DEK
+        ciphertext = aesgcm.encrypt(nonce, plaintext.encode(), None)
+        
+        # Encrypt DEK with master key
+        master_aesgcm = AESGCM(self.master_key)
+        master_nonce = os.urandom(12)
+        encrypted_dek = master_aesgcm.encrypt(master_nonce, dek, None)
+        
+        return {
+            "ciphertext": ciphertext,
+            "nonce": nonce,
+            "encrypted_dek": encrypted_dek,
+            "master_nonce": master_nonce
+        }
+    
+    def decrypt_field(self, envelope: dict) -> str:
+        # Decrypt DEK with master key
+        master_aesgcm = AESGCM(self.master_key)
+        dek = master_aesgcm.decrypt(
+            envelope["master_nonce"],
+            envelope["encrypted_dek"],
+            None
+        )
+        
+        # Decrypt plaintext with DEK
+        aesgcm = AESGCM(dek)
+        plaintext = aesgcm.decrypt(
+            envelope["nonce"],
+            envelope["ciphertext"],
+            None
+        )
+        
+        return plaintext.decode()
+```
+
+#### ChromaDB Vector Store
+
+**Purpose**: Semantic retrieval for regulatory lookups and historical pattern matching.
+
+**Collections**
+
+1. **Holdings Embeddings**
+   - Vectorize: `{ticker, sector, asset_class, description}`
+   - Use case: "Find similar positions across portfolios"
+
+2. **Market Events**
+   - Vectorize: `{event_type, affected_sectors, magnitude, date, description}`
+   - Use case: "Retrieve similar drawdown scenarios"
+
+3. **Regulatory Changes**
+   - Vectorize: `{regulation_id, summary, affected_asset_classes, effective_date}`
+   - Use case: "Check compliance for new wash sale rules"
+
+**Example Ingestion**
+
+```python
+import chromadb
+from chromadb.config import Settings
+
+client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+parquet",
+    persist_directory="./chroma_data"
+))
+
+holdings_collection = client.create_collection(
+    name="holdings_semantic",
+    metadata={"description": "UHNW portfolio holdings embeddings"}
+)
+
+# Embed holding with context
+holdings_collection.add(
+    documents=[
+        "NVDA: NVIDIA Corporation, Technology sector, Semiconductors, "
+        "AI/ML hardware leader, high volatility, tax-loss harvesting candidate"
+    ],
+    metadatas=[{
+        "ticker": "NVDA",
+        "sector": "Technology",
+        "asset_class": "equity",
+        "portfolio_id": "UHNW_001"
+    }],
+    ids=["holding_nvda_001"]
+)
+```
+
+#### Merkle Chain Audit Log
+
+**Structure**
+
+```python
+from dataclasses import dataclass
+import hashlib
+import json
+from datetime import datetime
+
+@dataclass
+class MerkleBlock:
+    index: int
+    timestamp: str
+    data: dict  # Agent action, state transition, or recommendation
+    previous_hash: str
+    hash: str
+    
+    def compute_hash(self) -> str:
+        block_string = json.dumps({
+            "index": self.index,
+            "timestamp": self.timestamp,
+            "data": self.data,
+            "previous_hash": self.previous_hash
+        }, sort_keys=True)
+        return hashlib.sha256(block_string.encode()).hexdigest()
+
+class MerkleChain:
+    def __init__(self):
+        self.chain = []
+        self._create_genesis_block()
+    
+    def _create_genesis_block(self):
+        genesis = MerkleBlock(
+            index=0,
+            timestamp=datetime.utcnow().isoformat(),
+            data={"action": "system_initialized"},
+            previous_hash="0",
+            hash=""
+        )
+        genesis.hash = genesis.compute_hash()
+        self.chain.append(genesis)
+    
+    def add_block(self, data: dict) -> MerkleBlock:
+        previous_block = self.chain[-1]
+        new_block = MerkleBlock(
+            index=len(self.chain),
+            timestamp=datetime.utcnow().isoformat(),
+            data=data,
+            previous_hash=previous_block.hash,
+            hash=""
+        )
+        new_block.hash = new_block.compute_hash()
+        self.chain.append(new_block)
+        return new_block
+    
+    def verify_integrity(self) -> bool:
+        for i in range(1, len(self.chain)):
+            current = self.chain[i]
+            previous = self.chain[i-1]
+            
+            # Verify hash computation
+            if current.hash != current.compute_hash():
+                return False
+            
+            # Verify chain linkage
+            if current.previous_hash != previous.hash:
+                return False
+        
+        return True
+```
+
+**Logged Events**
+
+- State transitions (`MONITOR → DETECT → ANALYZE`)
+- Agent invocations (input prompts, output recommendations)
+- Utility function scores (per recommendation)
+- Human decisions (approve/reject/modify)
+- System errors and retries
+
+---
+
+### Layer 3: Agent Reasoning Layer
+
+#### Agent Roles & Capabilities
+
+```mermaid
+classDiagram
+    class CoordinatorAgent {
+        +model: claude-opus-4-5
+        +dispatch_parallel(portfolio_id, market_event)
+        +synthesize_findings(drift_result, tax_result)
+        +resolve_conflicts(recommendations)
+        +rank_recommendations(utility_scores)
+        -context_window: 200k tokens
+    }
+    
+    class PortfolioDriftAgent {
+        +model: claude-sonnet-4-5
+        +detect_drift(current_allocation, target_allocation)
+        +calculate_concentration_risk(holdings)
+        +recommend_rebalancing(drift_analysis)
+        -focus: asset allocation, sector exposure
+    }
+    
+    class TaxOptimizationAgent {
+        +model: claude-sonnet-4-5
+        +identify_tax_loss_harvesting(holdings, tax_lots)
+        +check_wash_sale_compliance(transactions)
+        +estimate_tax_impact(proposed_trades)
+        -focus: tax efficiency, compliance
+    }
+    
+    CoordinatorAgent --> PortfolioDriftAgent : dispatches
+    CoordinatorAgent --> TaxOptimizationAgent : dispatches
+    PortfolioDriftAgent --> CoordinatorAgent : returns findings
+    TaxOptimizationAgent --> CoordinatorAgent : returns findings
+```
+
+#### Agent Prompts (Structured Outputs)
+
+**Portfolio Drift Agent Prompt Template**
+
+```python
+DRIFT_AGENT_PROMPT = """You are a Portfolio Drift Detection Agent for UHNW wealth management.
+
+CONTEXT:
+- Client: {client_id}
+- Risk Profile: {risk_profile}
+- Portfolio AUM: ${aum_usd:,.0f}
+- Target Allocation: {target_allocation}
+
+CURRENT PORTFOLIO STATE:
+{current_holdings_json}
+
+MARKET EVENT:
+{market_event_description}
+
+TASK:
+1. Compare current allocation vs target allocation
+2. Identify concentration risks (single positions >15% of portfolio)
+3. Calculate sector drift (current vs target by GICS sector)
+4. Assess rebalancing urgency (0-10 scale)
+
+OUTPUT FORMAT (JSON):
+{{
+    "drift_detected": boolean,
+    "drift_magnitude": float,  // 0.0-1.0 scale
+    "concentration_risks": [
+        {{
+            "ticker": str,
+            "current_weight": float,
+            "risk_level": "low" | "medium" | "high"
+        }}
+    ],
+    "sector_drifts": [
+        {{
+            "sector": str,
+            "target_weight": float,
+            "current_weight": float,
+            "drift_bps": int  // basis points
+        }}
+    ],
+    "recommended_trades": [
+        {{
+            "action": "buy" | "sell",
+            "ticker": str,
+            "quantity": float,
+            "rationale": str
+        }}
+    ],
+    "urgency_score": int,  // 0-10
+    "reasoning": str
+}}
+
+CONSTRAINTS:
+- Minimum trade size: $100,000
+- Consider transaction costs (15 bps for equities, 5 bps for fixed income)
+- Respect ESG exclusions: {esg_exclusions}
+"""
+
+DRIFT_AGENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "drift_detected": {"type": "boolean"},
+        "drift_magnitude": {"type": "number", "minimum": 0, "maximum": 1},
+        "concentration_risks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string"},
+                    "current_weight": {"type": "number"},
+                    "risk_level": {"type": "string", "enum": ["low", "medium", "high"]}
+                }
+            }
+        },
+        # ... (full schema)
+    },
+    "required": ["drift_detected", "drift_magnitude", "recommended_trades", "urgency_score"]
+}
+```
+
+**Tax Optimization Agent Prompt Template**
+
+```python
+TAX_AGENT_PROMPT = """You are a Tax Optimization Agent for UHNW wealth management.
+
+CONTEXT:
+- Client: {client_id}
+- Tax Sensitivity: {tax_sensitivity}/1.0
+- Current Tax Year: 2024
+- State: {state}  // for state tax rates
+- Federal Bracket: {federal_bracket}
+
+HOLDINGS & TAX LOTS:
+{holdings_with_tax_lots_json}
+
+RECENT TRANSACTIONS (90 days):
+{recent_transactions_json}
+
+PROPOSED TRADES (from Drift Agent):
+{drift_agent_recommendations_json}
+
+TASK:
+1. Identify tax-loss harvesting opportunities
+2. Check wash sale violations (30 days before, 30 days after)
+3. Calculate estimated tax impact of proposed trades
+4. Suggest tax-aware alternatives if wash sale detected
+
+OUTPUT FORMAT (JSON):
+{{
+    "tax_loss_opportunities": [
+        {{
+            "ticker": str,
+            "unrealized_loss": float,
+            "lot_id": str,
+            "harvestable": boolean,
+            "wash_sale_risk": boolean
+        }}
+    ],
+    "wash_sale_violations": [
+        {{
+            "ticker": str,
+            "violation_type": "lookback_30" | "lookahead_30",
+            "conflicting_transaction_id": str,
+            "recommendation": str
+        }}
+    ],
+    "tax_impact_analysis": {{
+        "short_term_gains": float,
+        "long_term_gains": float,
+        "harvested_losses": float,
+        "net_tax_liability": float,
+        "effective_tax_rate": float
+    }},
+    "alternative_recommendations": [
+        {{
+            "original_trade": str,
+            "alternative": str,
+            "rationale": str,
+            "tax_savings": float
+        }}
+    ],
+    "urgency_score": int,  // 0-10
+    "reasoning": str
+}}
+
+CONSTRAINTS:
+- Wash sale rule: 30 days before and after sale
+- Substantially identical securities trigger wash sale
+- Consider correlation substitutes (e.g., NVDA → AMD for tech exposure)
+"""
+```
+
+**Coordinator Agent Prompt Template**
+
+```python
+COORDINATOR_PROMPT = """You are the Coordinator Agent orchestrating portfolio analysis for UHNW wealth management.
+
+CONTEXT:
+- Client: {client_id}
+- Portfolio: ${aum_usd:,.0f}
+- Market Event: {market_event_description}
+
+SUB-AGENT FINDINGS:
+
+DRIFT AGENT ANALYSIS:
+{drift_agent_output_json}
+
+TAX AGENT ANALYSIS:
+{tax_agent_output_json}
+
+TASK:
+1. Synthesize findings from both agents
+2. Identify conflicts (e.g., drift says sell, tax says wash sale violation)
+3. Generate 2-3 alternative recommendation scenarios
+4. For each scenario, provide:
+   - Action steps
+   - Expected outcomes
+   - Trade-offs
+   - Utility score inputs (for later scoring)
+
+OUTPUT FORMAT (JSON):
+{{
+    "synthesis": {{
+        "key_findings": [str],
+        "conflicts_detected": [
+            {{
+                "conflict_type": str,
+                "agents_involved": [str],
+                "description": str
+            }}
+        ]
+    }},
+    "recommendation_scenarios": [
+        {{
+            "scenario_id": str,
+            "title": str,
+            "action_steps": [
+                {{
+                    "step": int,
+                    "action": str,
+                    "ticker": str,
+                    "quantity": float,
+                    "timing": str
+                }}
+            ],
+            "expected_outcomes": {{
+                "portfolio_drift_reduction": float,
+                "tax_impact": float,
+                "risk_reduction": float,
+                "transaction_costs": float
+            }},
+            "trade_offs": str,
+            "reasoning": str
+        }}
+    ],
+    "recommended_scenario_id": str,
+    "confidence": float  // 0.0-1.0
+}}
+
+REASONING GUIDELINES:
+- Prioritize client's risk profile and tax sensitivity
+- Consider market timing (don't force trades in volatile markets)
+- Minimize transaction costs
+- Preserve tax efficiency
+- Document all trade-offs explicitly
+"""
+```
+
+#### Agent Execution Pattern
+
+```python
+from anthropic import Anthropic
+import asyncio
+
+class AgentOrchestrator:
+    def __init__(self, api_key: str):
+        self.client = Anthropic(api_key=api_key)
+        self.merkle_chain = MerkleChain()
+    
+    async def execute_analysis(self, portfolio_id: str, market_event: dict):
+        # Log analysis start
+        self.merkle_chain.add_block({
+            "action": "analysis_started",
+            "portfolio_id": portfolio_id,
+            "market_event": market_event
+        })
+        
+        # Parallel dispatch to sub-agents
+        drift_task = self._invoke_drift_agent(portfolio_id, market_event)
+        tax_task = self._invoke_tax_agent(portfolio_id, market_event)
+        
+        drift_result, tax_result = await asyncio.gather(drift_task, tax_task)
+        
+        # Log sub-agent outputs
+        self.merkle_chain.add_block({
+            "action": "drift_agent_completed",
+            "output": drift_result
+        })
+        self.merkle_chain.add_block({
+            "action": "tax_agent_completed",
+            "output": tax_result
+        })
+        
+        # Coordinator synthesis
+        coordinator_result = await self._invoke_coordinator(
+            drift_result, tax_result, portfolio_id
+        )
+        
+        return coordinator_result
+    
+    async def _invoke_drift_agent(self, portfolio_id: str, market_event: dict):
+        # Construct prompt with portfolio data
+        prompt = DRIFT_AGENT_PROMPT.format(
+            client_id=portfolio_id,
+            # ... (inject data from SQLite)
+        )
+        
+        response = self.client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}],
+            tools=[{
+                "name": "drift_analysis_output",
+                "input_schema": DRIFT_AGENT_SCHEMA
+            }]
+        )
+        
+        # Parse structured output
+        return response.content[0].input  # Tool use extraction
+    
+    async def _invoke_coordinator(self, drift_result, tax_result, portfolio_id):
+        prompt = COORDINATOR_PROMPT.format(
+            drift_agent_output_json=json.dumps(drift_result, indent=2),
+            tax_agent_output_json=json.dumps(tax_result, indent=2),
+            # ... (inject portfolio context)
+        )
+        
+        response = self.client.messages.create(
+            model="claude-opus-4-5-20251101",  # Opus for synthesis
+            max_tokens=8192,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return json.loads(response.content[0].text)
+```
+
+---
+
+### Layer 4: State Machine & Utility Functions
+
+#### State Machine Design
+
+```mermaid
+stateDiagram-v2
+    [*] --> MONITOR
+    MONITOR --> DETECT : Market event triggers analysis
+    DETECT --> ANALYZE : Anomaly detected
+    ANALYZE --> CONFLICT_RESOLUTION : Conflicting recommendations
+    ANALYZE --> RECOMMEND : No conflicts
+    CONFLICT_RESOLUTION --> RECOMMEND : Utility scoring complete
+    RECOMMEND --> AWAIT_REVIEW : Present to advisor
+    AWAIT_REVIEW --> APPROVED : Advisor approves
+    AWAIT_REVIEW --> REJECTED : Advisor rejects
+    AWAIT_REVIEW --> MODIFIED : Advisor modifies
+    APPROVED --> EXECUTE : Log to Merkle chain
+    REJECTED --> MONITOR : Return to monitoring
+    MODIFIED --> EXECUTE : Log modified action
+    EXECUTE --> MONITOR : Action complete
+    MONITOR --> [*] : System shutdown
+```
+
+**State Machine Implementation**
+
+```python
+from transitions import Machine
+from enum import Enum
+
+class SystemState(Enum):
+    MONITOR = "monitor"
+    DETECT = "detect"
+    ANALYZE = "analyze"
+    CONFLICT_RESOLUTION = "conflict_resolution"
+    RECOMMEND = "recommend"
+    AWAIT_REVIEW = "await_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    MODIFIED = "modified"
+    EXECUTE = "execute"
+
+class SentinelStateMachine:
+    states = [s.value for s in SystemState]
+    
+    def __init__(self, merkle_chain: MerkleChain):
+        self.merkle_chain = merkle_chain
+        self.current_analysis = None
+        
+        self.machine = Machine(
+            model=self,
+            states=SentinelStateMachine.states,
+            initial=SystemState.MONITOR.value
+        )
+        
+        # Transitions
+        self.machine.add_transition(
+            trigger='market_event_detected',
+            source=SystemState.MONITOR.value,
+            dest=SystemState.DETECT.value,
+            after='log_transition'
+        )
+        
+        self.machine.add_transition(
+            trigger='anomaly_found',
+            source=SystemState.DETECT.value,
+            dest=SystemState.ANALYZE.value,
+            after='log_transition'
+        )
+        
+        self.machine.add_transition(
+            trigger='conflict_detected',
+            source=SystemState.ANALYZE.value,
+            dest=SystemState.CONFLICT_RESOLUTION.value,
+            conditions=['has_conflicts'],
+            after='log_transition'
+        )
+        
+        self.machine.add_transition(
+            trigger='analysis_complete',
+            source=SystemState.ANALYZE.value,
+            dest=SystemState.RECOMMEND.value,
+            unless=['has_conflicts'],
+            after='log_transition'
+        )
+        
+        # ... (other transitions)
+    
+    def log_transition(self):
+        self.merkle_chain.add_block({
+            "action": "state_transition",
+            "from_state": self.machine.get_state(self.state).name,
+            "to_state": self.state,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+    
+    def has_conflicts(self):
+        if not self.current_analysis:
+            return False
+        return len(self.current_analysis.get("conflicts_detected", [])) > 0
+```
+
+#### Utility Function Scoring
+
+**Five Dimensions**
+
+1. **Risk Reduction** (0-100): Improvement in portfolio Sharpe ratio, VaR reduction, concentration mitigation
+2. **Tax Savings** (0-100): Net tax liability reduction, loss harvesting value
+3. **Goal Alignment** (0-100): Distance to target allocation, adherence to risk profile
+4. **Transaction Cost** (0-100): Inverted transaction costs (higher score = lower costs)
+5. **Urgency** (0-100): Market volatility, drift magnitude, regulatory deadlines
+
+**Weighted Scoring by Profile**
+
+```python
+from dataclasses import dataclass
+import numpy as np
+
+@dataclass
+class UtilityWeights:
+    risk_reduction: float
+    tax_savings: float
+    goal_alignment: float
+    transaction_cost: float
+    urgency: float
+    
+    def normalize(self):
+        total = sum([
+            self.risk_reduction,
+            self.tax_savings,
+            self.goal_alignment,
+            self.transaction_cost,
+            self.urgency
+        ])
+        return UtilityWeights(
+            risk_reduction=self.risk_reduction / total,
+            tax_savings=self.tax_savings / total,
+            goal_alignment=self.goal_alignment / total,
+            transaction_cost=self.transaction_cost / total,
+            urgency=self.urgency / total
+        )
+
+# Profile-specific weights
+PROFILE_WEIGHTS = {
+    "conservative": UtilityWeights(
+        risk_reduction=0.35,
+        tax_savings=0.25,
+        goal_alignment=0.20,
+        transaction_cost=0.15,
+        urgency=0.05
+    ),
+    "moderate_growth": UtilityWeights(
+        risk_reduction=0.25,
+        tax_savings=0.30,
+        goal_alignment=0.25,
+        transaction_cost=0.10,
+        urgency=0.10
+    ),
+    "aggressive": UtilityWeights(
+        risk_reduction=0.15,
+        tax_savings=0.20,
+        goal_alignment=0.30,
+        transaction_cost=0.10,
+        urgency=0.25
+    )
+}
+
+class UtilityScorer:
+    def __init__(self, client_profile: dict):
+        self.profile = client_profile
+        self.weights = PROFILE_WEIGHTS[client_profile["risk_tolerance"]].normalize()
+    
+    def score_recommendation(self, scenario: dict) -> dict:
+        """Score a recommendation scenario across 5 dimensions"""
+        
+        # 1. Risk Reduction Score
+        current_sharpe = scenario["current_metrics"]["sharpe_ratio"]
+        projected_sharpe = scenario["expected_outcomes"]["sharpe_ratio"]
+        risk_score = self._normalize(projected_sharpe - current_sharpe, -0.5, 0.5) * 100
+        
+        # 2. Tax Savings Score
+        tax_impact = scenario["expected_outcomes"]["tax_impact"]
+        max_possible_savings = scenario["current_metrics"]["unrealized_losses"]
+        tax_score = self._normalize(
+            abs(tax_impact) if tax_impact < 0 else 0,
+            0,
+            max_possible_savings
+        ) * 100
+        
+        # 3. Goal Alignment Score
+        drift_reduction = scenario["expected_outcomes"]["portfolio_drift_reduction"]
+        goal_score = self._normalize(drift_reduction, 0, 1) * 100
+        
+        # 4. Transaction Cost Score (inverted)
+        tx_costs = scenario["expected_outcomes"]["transaction_costs"]
+        max_acceptable_cost = scenario["current_metrics"]["aum"] * 0.005  # 50 bps
+        cost_score = (1 - self._normalize(tx_costs, 0, max_acceptable_cost)) * 100
+        
+        # 5. Urgency Score
+        urgency = scenario.get("urgency_factors", {})
+        urgency_score = (
+            urgency.get("market_volatility", 0) * 0.4 +
+            urgency.get("drift_magnitude", 0) * 0.4 +
+            urgency.get("regulatory_deadline", 0) * 0.2
+        ) * 100
+        
+        # Weighted total
+        weighted_score = (
+            risk_score * self.weights.risk_reduction +
+            tax_score * self.weights.tax_savings +
+            goal_score * self.weights.goal_alignment +
+            cost_score * self.weights.transaction_cost +
+            urgency_score * self.weights.urgency
+        )
+        
+        return {
+            "total_score": weighted_score,
+            "dimension_scores": {
+                "risk_reduction": risk_score,
+                "tax_savings": tax_score,
+                "goal_alignment": goal_score,
+                "transaction_cost": cost_score,
+                "urgency": urgency_score
+            },
+            "weights_applied": {
+                "risk_reduction": self.weights.risk_reduction,
+                "tax_savings": self.weights.tax_savings,
+                "goal_alignment": self.weights.goal_alignment,
+                "transaction_cost": self.weights.transaction_cost,
+                "urgency": self.weights.urgency
+            }
+        }
+    
+    def _normalize(self, value: float, min_val: float, max_val: float) -> float:
+        """Normalize value to 0-1 range"""
+        return np.clip((value - min_val) / (max_val - min_val), 0, 1)
+```
+
+**Conflict Resolution Example**
+
+```python
+# Scenario: Drift Agent says sell NVDA, Tax Agent flags wash sale
+
+# Option 1: Sell now, take wash sale hit
+scenario_1 = {
+    "scenario_id": "sell_immediate",
+    "title": "Sell NVDA immediately (wash sale disallowed)",
+    "expected_outcomes": {
+        "portfolio_drift_reduction": 0.45,  # Good drift reduction
+        "tax_impact": 15_000,  # Loss disallowed, higher tax
+        "risk_reduction": 0.30,
+        "transaction_costs": 2_500
+    },
+    "current_metrics": {
+        "aum": 50_000_000,
+        "unrealized_losses": 50_000,
+        "sharpe_ratio": 1.2
+    },
+    "urgency_factors": {
+        "market_volatility": 0.7,
+        "drift_magnitude": 0.6,
+        "regulatory_deadline": 0.0
+    }
+}
+
+# Option 2: Wait 31 days for wash sale to clear
+scenario_2 = {
+    "scenario_id": "wait_31_days",
+    "title": "Wait 31 days, then sell NVDA",
+    "expected_outcomes": {
+        "portfolio_drift_reduction": 0.25,  # Delayed drift reduction
+        "tax_impact": -35_000,  # Full loss harvesting
+        "risk_reduction": 0.15,  # Continued concentration risk
+        "transaction_costs": 2_500
+    },
+    # ... (same current_metrics)
+    "urgency_factors": {
+        "market_volatility": 0.7,
+        "drift_magnitude": 0.6,
+        "regulatory_deadline": 0.0
+    }
+}
+
+# Option 3: Sell NVDA, buy correlated substitute (AMD)
+scenario_3 = {
+    "scenario_id": "substitute_amd",
+    "title": "Sell NVDA, buy AMD (correlated substitute)",
+    "expected_outcomes": {
+        "portfolio_drift_reduction": 0.40,  # Good drift reduction
+        "tax_impact": -30_000,  # Partial loss harvesting (correlation not perfect)
+        "risk_reduction": 0.25,  # Maintains tech exposure
+        "transaction_costs": 5_000  # Two transactions
+    },
+    # ... (same current_metrics)
+    "urgency_factors": {
+        "market_volatility": 0.7,
+        "drift_magnitude": 0.6,
+        "regulatory_deadline": 0.0
+    }
+}
+
+# Score all three scenarios
+scorer = UtilityScorer({"risk_tolerance": "moderate_growth"})
+
+scores = [
+    scorer.score_recommendation(scenario_1),
+    scorer.score_recommendation(scenario_2),
+    scorer.score_recommendation(scenario_3)
+]
+
+# Rank by total score
+ranked = sorted(
+    zip([scenario_1, scenario_2, scenario_3], scores),
+    key=lambda x: x[1]["total_score"],
+    reverse=True
+)
+
+# Expected output for moderate_growth profile:
+# Rank 1: substitute_amd (balanced tax savings + drift reduction)
+# Rank 2: wait_31_days (maximizes tax savings)
+# Rank 3: sell_immediate (poor tax outcome)
+```
+
+---
+
+### Layer 5: Human-in-the-Loop Interface
+
+#### Rich CLI Design
+
+```python
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.syntax import Syntax
+import json
+
+class SentinelCLI:
+    def __init__(self):
+        self.console = Console()
+    
+    def display_recommendations(self, ranked_scenarios: list):
+        """Display ranked recommendations with utility scores"""
+        
+        self.console.print("\n")
+        self.console.print(Panel.fit(
+            "[bold cyan]Sentinel Portfolio Analysis Complete[/bold cyan]",
+            border_style="cyan"
+        ))
+        
+        for rank, (scenario, score) in enumerate(ranked_scenarios, 1):
+            # Scenario header
+            self.console.print(f"\n[bold]Recommendation #{rank}[/bold]: {scenario['title']}")
+            self.console.print(f"[dim]Scenario ID: {scenario['scenario_id']}[/dim]")
+            
+            # Utility score breakdown
+            score_table = Table(show_header=True, header_style="bold magenta")
+            score_table.add_column("Dimension")
+            score_table.add_column("Score", justify="right")
+            score_table.add_column("Weight", justify="right")
+            score_table.add_column("Weighted", justify="right")
+            
+            dims = score["dimension_scores"]
+            weights = score["weights_applied"]
+            
+            for dim_name in ["risk_reduction", "tax_savings", "goal_alignment", 
+                             "transaction_cost", "urgency"]:
+                dim_score = dims[dim_name]
+                dim_weight = weights[dim_name]
+                weighted = dim_score * dim_weight
+                
+                score_table.add_row(
+                    dim_name.replace("_", " ").title(),
+                    f"{dim_score:.1f}",
+                    f"{dim_weight:.2f}",
+                    f"{weighted:.1f}"
+                )
+            
+            score_table.add_row(
+                "[bold]TOTAL UTILITY SCORE[/bold]",
+                "",
+                "",
+                f"[bold]{score['total_score']:.1f}[/bold]"
+            )
+            
+            self.console.print(score_table)
+            
+            # Action steps
+            self.console.print("\n[bold]Action Steps:[/bold]")
+            for step in scenario["action_steps"]:
+                self.console.print(
+                    f"  {step['step']}. {step['action']} "
+                    f"{step['ticker']} (Qty: {step['quantity']:,.0f}) - {step['timing']}"
+                )
+            
+            # Expected outcomes
+            outcomes = scenario["expected_outcomes"]
+            self.console.print("\n[bold]Expected Outcomes:[/bold]")
+            self.console.print(f"  • Portfolio Drift Reduction: {outcomes['portfolio_drift_reduction']:.1%}")
+            self.console.print(f"  • Tax Impact: ${outcomes['tax_impact']:,.0f}")
+            self.console.print(f"  • Risk Reduction: {outcomes['risk_reduction']:.1%}")
+            self.console.print(f"  • Transaction Costs: ${outcomes['transaction_costs']:,.0f}")
+            
+            # Trade-offs
+            self.console.print(f"\n[bold]Trade-offs:[/bold] {scenario['trade_offs']}")
+            
+            self.console.print("\n" + "─" * 80)
+        
+        # User prompt
+        self.console.print("\n[bold yellow]Select action:[/bold yellow]")
+        self.console.print("  1-3: Approve recommendation")
+        self.console.print("  M: Modify recommendation")
+        self.console.print("  R: Reject all")
+        self.console.print("  V: View full reasoning traces")
+    
+    def display_reasoning_trace(self, coordinator_output: dict):
+        """Display full agent reasoning traces"""
+        
+        self.console.print("\n")
+        self.console.print(Panel.fit(
+            "[bold cyan]Agent Reasoning Traces[/bold cyan]",
+            border_style="cyan"
+        ))
+        
+        # Drift Agent
+        self.console.print("\n[bold magenta]Portfolio Drift Agent:[/bold magenta]")
+        drift_json = Syntax(
+            json.dumps(coordinator_output["drift_agent_output"], indent=2),
+            "json",
+            theme="monokai",
+            line_numbers=True
+        )
+        self.console.print(drift_json)
+        
+        # Tax Agent
+        self.console.print("\n[bold magenta]Tax Optimization Agent:[/bold magenta]")
+        tax_json = Syntax(
+            json.dumps(coordinator_output["tax_agent_output"], indent=2),
+            "json",
+            theme="monokai",
+            line_numbers=True
+        )
+        self.console.print(tax_json)
+        
+        # Coordinator synthesis
+        self.console.print("\n[bold magenta]Coordinator Synthesis:[/bold magenta]")
+        coord_json = Syntax(
+            json.dumps(coordinator_output["synthesis"], indent=2),
+            "json",
+            theme="monokai",
+            line_numbers=True
+        )
+        self.console.print(coord_json)
+```
+
+**CLI Output Example**
+
+```
+╭──────────────────────────────────────────────────────────────╮
+│          Sentinel Portfolio Analysis Complete                │
+╰──────────────────────────────────────────────────────────────╯
+
+Recommendation #1: Sell NVDA, buy AMD (correlated substitute)
+Scenario ID: substitute_amd
+
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━━━┓
+┃ Dimension          ┃ Score ┃ Weight ┃ Weighted ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━━━┩
+│ Risk Reduction     │  62.5 │   0.25 │     15.6 │
+│ Tax Savings        │  75.0 │   0.30 │     22.5 │
+│ Goal Alignment     │  80.0 │   0.25 │     20.0 │
+│ Transaction Cost   │  50.0 │   0.10 │      5.0 │
+│ Urgency            │  65.0 │   0.10 │      6.5 │
+│ TOTAL UTILITY SCORE│       │        │     69.6 │
+└────────────────────┴───────┴────────┴──────────┘
+
+Action Steps:
+  1. Sell NVDA (Qty: 15,000) - Immediate (T+0)
+  2. Buy AMD (Qty: 27,500) - Immediate (T+0)
+
+Expected Outcomes:
+  • Portfolio Drift Reduction: 40.0%
+  • Tax Impact: $-30,000
+  • Risk Reduction: 25.0%
+  • Transaction Costs: $5,000
+
+Trade-offs: Maintains tech sector exposure via correlated substitute. Partial 
+tax loss harvesting (correlation not perfect substitute). Higher transaction 
+costs (two trades).
+
+────────────────────────────────────────────────────────────────────────────────
+
+Select action:
+  1-3: Approve recommendation
+  M: Modify recommendation
+  R: Reject all
+  V: View full reasoning traces
+```
+
+---
+
+### Layer 6: Security & Privacy Envelope
+
+#### Security Architecture
+
+```mermaid
+graph TB
+    subgraph "Data at Rest"
+        MK[Master Key<br/>KMS/Environment]
+        DEK[Data Encryption Keys<br/>Per-field unique]
+        ENC_DB[(Encrypted SQLite<br/>AES-256-GCM)]
+    end
+    
+    subgraph "Data in Transit"
+        TLS[TLS 1.3<br/>Certificate Pinning]
+        API[Claude API<br/>HTTPS only]
+    end
+    
+    subgraph "Access Control"
+        RBAC_LAYER[RBAC Middleware]
+        AGENT_SCOPE[Agent-scoped Views<br/>Read-only slices]
+        HUMAN_FULL[Human Full Access<br/>Approve/Reject only]
+    end
+    
+    subgraph "Audit Trail"
+        MERKLE[Merkle Chain<br/>SHA-256 hashes]
+        DLT[Future: Hyperledger Fabric<br/>Distributed ledger]
+    end
+    
+    MK --> DEK
+    DEK --> ENC_DB
+    ENC_DB --> RBAC_LAYER
+    RBAC_LAYER --> AGENT_SCOPE
+    RBAC_LAYER --> HUMAN_FULL
+    AGENT_SCOPE --> TLS
+    TLS --> API
+    HUMAN_FULL --> MERKLE
+    MERKLE -.Future.-> DLT
+```
+
+#### Role-Based Access Control
+
+```python
+from enum import Enum
+from functools import wraps
+
+class Role(Enum):
+    DRIFT_AGENT = "drift_agent"
+    TAX_AGENT = "tax_agent"
+    COORDINATOR = "coordinator"
+    HUMAN_ADVISOR = "human_advisor"
+    ADMIN = "admin"
+
+class Permission(Enum):
+    READ_HOLDINGS = "read_holdings"
+    READ_TAX_LOTS = "read_tax_lots"
+    READ_CLIENT_PII = "read_client_pii"
+    WRITE_RECOMMENDATIONS = "write_recommendations"
+    APPROVE_TRADES = "approve_trades"
+    MODIFY_SYSTEM = "modify_system"
+
+ROLE_PERMISSIONS = {
+    Role.DRIFT_AGENT: [
+        Permission.READ_HOLDINGS  # No PII, no tax lots
+    ],
+    Role.TAX_AGENT: [
+        Permission.READ_HOLDINGS,
+        Permission.READ_TAX_LOTS  # No PII
+    ],
+    Role.COORDINATOR: [
+        Permission.READ_HOLDINGS,
+        Permission.READ_TAX_LOTS,
+        Permission.WRITE_RECOMMENDATIONS
+    ],
+    Role.HUMAN_ADVISOR: [
+        Permission.READ_HOLDINGS,
+        Permission.READ_TAX_LOTS,
+        Permission.READ_CLIENT_PII,
+        Permission.APPROVE_TRADES
+    ],
+    Role.ADMIN: [  # All permissions
+        Permission.READ_HOLDINGS,
+        Permission.READ_TAX_LOTS,
+        Permission.READ_CLIENT_PII,
+        Permission.WRITE_RECOMMENDATIONS,
+        Permission.APPROVE_TRADES,
+        Permission.MODIFY_SYSTEM
+    ]
+}
+
+class RBACContext:
+    def __init__(self, role: Role):
+        self.role = role
+        self.permissions = ROLE_PERMISSIONS[role]
+    
+    def has_permission(self, permission: Permission) -> bool:
+        return permission in self.permissions
+    
+    def require_permission(self, permission: Permission):
+        if not self.has_permission(permission):
+            raise PermissionError(
+                f"Role {self.role.value} lacks permission {permission.value}"
+            )
+
+def require_permission(permission: Permission):
+    """Decorator to enforce RBAC on functions"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not hasattr(self, 'rbac_context'):
+                raise RuntimeError("No RBAC context set")
+            self.rbac_context.require_permission(permission)
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+class PortfolioDataAccess:
+    def __init__(self, rbac_context: RBACContext):
+        self.rbac_context = rbac_context
+    
+    @require_permission(Permission.READ_HOLDINGS)
+    def get_holdings(self, portfolio_id: str) -> list:
+        # Return holdings without PII
+        return self._query_holdings_sanitized(portfolio_id)
+    
+    @require_permission(Permission.READ_CLIENT_PII)
+    def get_client_profile(self, client_id: str) -> dict:
+        # Return full client profile including PII
+        return self._query_client_full(client_id)
+    
+    @require_permission(Permission.APPROVE_TRADES)
+    def approve_recommendation(self, recommendation_id: str):
+        # Only human advisors can approve
+        self._execute_trade(recommendation_id)
+```
+
+---
+
+## Data Models
+
+### Portfolio Holdings Schema
+
+```python
+from dataclasses import dataclass
+from datetime import date
+from typing import List, Optional
+
+@dataclass
+class TaxLot:
+    lot_id: str
+    quantity: float
+    purchase_price: float
+    purchase_date: date
+    sale_date: Optional[date] = None
+    sale_price: Optional[float] = None
+    realized_gain_loss: Optional[float] = None
+    holding_period_days: Optional[int] = None
+    
+    @property
+    def unrealized_gain_loss(self, current_price: float) -> float:
+        if self.sale_date:
+            return 0.0
+        return (current_price - self.purchase_price) * self.quantity
+    
+    @property
+    def is_long_term(self) -> bool:
+        """Long-term capital gains if held >365 days"""
+        if not self.holding_period_days:
+            return False
+        return self.holding_period_days > 365
+
+@dataclass
+class Holding:
+    holding_id: str
+    portfolio_id: str
+    ticker: str
+    quantity: float
+    cost_basis: float  # Weighted average
+    acquisition_date: date
+    current_value: float
+    market_price: float
+    asset_class: str  # equity | fixed_income | alternative | structured | cash
+    sector: Optional[str] = None
+    tax_lots: List[TaxLot] = None
+    
+    @property
+    def unrealized_gain_loss(self) -> float:
+        return self.current_value - (self.cost_basis * self.quantity)
+    
+    @property
+    def portfolio_weight(self, portfolio_aum: float) -> float:
+        return self.current_value / portfolio_aum
+
+@dataclass
+class Portfolio:
+    portfolio_id: str
+    client_id: str
+    aum_usd: float
+    risk_profile: str  # conservative | moderate_growth | aggressive
+    target_allocation: dict  # {asset_class: target_weight}
+    holdings: List[Holding]
+    
+    @property
+    def current_allocation(self) -> dict:
+        allocation = {}
+        for holding in self.holdings:
+            asset_class = holding.asset_class
+            if asset_class not in allocation:
+                allocation[asset_class] = 0.0
+            allocation[asset_class] += holding.current_value
+        
+        # Convert to percentages
+        return {k: v / self.aum_usd for k, v in allocation.items()}
+    
+    @property
+    def drift_from_target(self) -> dict:
+        current = self.current_allocation
+        return {
+            asset_class: current.get(asset_class, 0) - target_weight
+            for asset_class, target_weight in self.target_allocation.items()
+        }
+```
+
+### Market Event Schema
+
+```python
+@dataclass
+class MarketEvent:
+    event_id: str
+    event_type: str  # sector_drop | volatility_spike | earnings | macro
+    timestamp: str
+    affected_sectors: List[str]
+    magnitude: float  # -1.0 to 1.0 (negative for drops)
+    description: str
+    
+    # Example: Tech sector drop
+    # MarketEvent(
+    #     event_id="evt_20240315_tech_drop",
+    #     event_type="sector_drop",
+    #     timestamp="2024-03-15T14:30:00Z",
+    #     affected_sectors=["Technology", "Communication Services"],
+    #     magnitude=-0.04,  # -4%
+    #     description="Tech sector selloff on Fed rate comments"
+    # )
+```
+
+---
+
+## Golden Path Demo
+
+### Scenario Setup
+
+**Initial State**
+- Portfolio: $50M UHNW Growth (Portfolio A)
+- Tech allocation: 34% (target: 25%)
+- NVDA position: $8.5M (17% of portfolio — concentration risk)
+- Prior NVDA sale: 15 days ago (wash sale window active)
+
+**Market Event**
+- Tech sector drops 4%
+- NVDA drops 6% ($8.5M → $8.0M)
+- Portfolio now: Tech = 29% (still above 25% target due to prior outperformance)
+
+**Agent Analysis Triggered**
+
+```mermaid
+sequenceDiagram
+    participant MKT as Market Data
+    participant SM as State Machine
+    participant DRIFT as Drift Agent
+    participant TAX as Tax Agent
+    participant COORD as Coordinator
+    participant UTIL as Utility Function
+    participant CLI as Human Advisor
+    participant MERKLE as Merkle Chain
+    
+    MKT->>SM: Tech sector -4% event
+    SM->>SM: MONITOR → DETECT
+    SM->>DRIFT: Analyze portfolio drift
+    SM->>TAX: Check tax optimization
+    
+    par Parallel Analysis
+        DRIFT->>DRIFT: Calculate drift<br/>NVDA 17% (exceed 15% limit)
+        TAX->>TAX: Loss harvesting opportunity<br/>BUT wash sale on NVDA
+    end
+    
+    DRIFT->>COORD: Recommendation: Sell NVDA
+    TAX->>COORD: Warning: Wash sale violation
+    
+    COORD->>SM: Conflict detected
+    SM->>SM: ANALYZE → CONFLICT_RESOLUTION
+    
+    COORD->>COORD: Generate 3 scenarios:<br/>1. Sell now (wash sale hit)<br/>2. Wait 31 days<br/>3. Substitute AMD
+    
+    COORD->>UTIL: Score scenarios
+    UTIL->>UTIL: Apply weights (moderate_growth)
+    UTIL->>COORD: Ranked scores
+    
+    COORD->>SM: Recommendations ready
+    SM->>SM: CONFLICT_RESOLUTION → RECOMMEND
+    
+    SM->>CLI: Display ranked recommendations
+    CLI->>CLI: Advisor reviews
+    CLI->>SM: Approve scenario #1 (AMD substitute)
+    
+    SM->>SM: RECOMMEND → APPROVED
+    SM->>MERKLE: Log approval
+    MERKLE->>MERKLE: Add block (SHA-256)
+    
+    SM->>SM: APPROVED → EXECUTE
+    SM->>MERKLE: Log execution
+    SM->>SM: EXECUTE → MONITOR
+```
+
+### Expected Output
+
+**Conflict Detected**
+- Drift Agent: "Sell NVDA to reduce concentration risk (17% → 10%)"
+- Tax Agent: "NVDA sold 15 days ago triggers wash sale if sold again within 30 days"
+
+**Three Scenarios Generated**
+
+| Scenario | Utility Score | Rank |
+|----------|---------------|------|
+| Substitute AMD | 69.6 | 1 |
+| Wait 31 days | 64.2 | 2 |
+| Sell immediate | 48.5 | 3 |
+
+**Recommendation #1 Details**
+
+```
+Action Steps:
+1. Sell NVDA 15,000 shares @ $533.33 = $8,000,000
+2. Buy AMD 27,500 shares @ $291.00 = $8,002,500 (net $2,500 tx cost)
+
+Expected Outcomes:
+• Portfolio drift reduced from 4% to 1.6% (tech sector)
+• NVDA concentration eliminated (17% → 0%)
+• Tax loss harvested: ~$30,000 (partial, due to correlation)
+• Tech exposure maintained via AMD (0.78 correlation to NVDA)
+• Transaction costs: $5,000 (15 bps on $16M notional)
+
+Trade-offs:
+✓ Immediate drift reduction
+✓ Partial tax loss harvesting
+✓ Maintains tech exposure
+✗ Higher transaction costs (two trades)
+✗ AMD is not perfect correlation (tracking error risk)
+
+Utility Score Breakdown:
+Risk Reduction:      62.5 × 0.25 = 15.6
+Tax Savings:         75.0 × 0.30 = 22.5
+Goal Alignment:      80.0 × 0.25 = 20.0
+Transaction Cost:    50.0 × 0.10 =  5.0
+Urgency:             65.0 × 0.10 =  6.5
+                            TOTAL = 69.6
+```
+
+**Merkle Chain Audit Trail**
+
+```json
+[
+  {
+    "index": 0,
+    "timestamp": "2024-03-15T14:30:00Z",
+    "data": {"action": "system_initialized"},
+    "previous_hash": "0",
+    "hash": "a1b2c3d4..."
+  },
+  {
+    "index": 1,
+    "timestamp": "2024-03-15T14:30:15Z",
+    "data": {
+      "action": "market_event_detected",
+      "event_id": "evt_20240315_tech_drop",
+      "magnitude": -0.04
+    },
+    "previous_hash": "a1b2c3d4...",
+    "hash": "e5f6g7h8..."
+  },
+  {
+    "index": 2,
+    "timestamp": "2024-03-15T14:30:30Z",
+    "data": {
+      "action": "state_transition",
+      "from_state": "MONITOR",
+      "to_state": "DETECT"
+    },
+    "previous_hash": "e5f6g7h8...",
+    "hash": "i9j0k1l2..."
+  },
+  {
+    "index": 3,
+    "timestamp": "2024-03-15T14:31:00Z",
+    "data": {
+      "action": "drift_agent_invoked",
+      "portfolio_id": "UHNW_001",
+      "drift_magnitude": 0.04
+    },
+    "previous_hash": "i9j0k1l2...",
+    "hash": "m3n4o5p6..."
+  },
+  {
+    "index": 4,
+    "timestamp": "2024-03-15T14:31:15Z",
+    "data": {
+      "action": "tax_agent_invoked",
+      "portfolio_id": "UHNW_001",
+      "wash_sale_detected": true,
+      "ticker": "NVDA"
+    },
+    "previous_hash": "m3n4o5p6...",
+    "hash": "q7r8s9t0..."
+  },
+  {
+    "index": 5,
+    "timestamp": "2024-03-15T14:32:00Z",
+    "data": {
+      "action": "conflict_detected",
+      "conflict_type": "drift_vs_wash_sale",
+      "agents": ["drift_agent", "tax_agent"]
+    },
+    "previous_hash": "q7r8s9t0...",
+    "hash": "u1v2w3x4..."
+  },
+  {
+    "index": 6,
+    "timestamp": "2024-03-15T14:33:00Z",
+    "data": {
+      "action": "utility_scores_computed",
+      "scenarios": [
+        {"scenario_id": "substitute_amd", "score": 69.6},
+        {"scenario_id": "wait_31_days", "score": 64.2},
+        {"scenario_id": "sell_immediate", "score": 48.5}
+      ]
+    },
+    "previous_hash": "u1v2w3x4...",
+    "hash": "y5z6a7b8..."
+  },
+  {
+    "index": 7,
+    "timestamp": "2024-03-15T14:35:00Z",
+    "data": {
+      "action": "human_approval",
+      "advisor_id": "ADV_001",
+      "approved_scenario": "substitute_amd",
+      "notes": "Agree with AMD substitute approach"
+    },
+    "previous_hash": "y5z6a7b8...",
+    "hash": "c9d0e1f2..."
+  }
+]
+```
+
+---
+
+## Technology Stack
+
+### Core Dependencies
+
+```toml
+[tool.poetry.dependencies]
+python = "^3.12"
+
+# Claude API
+anthropic = "^0.39.0"
+
+# State machine
+transitions = "^0.9.0"
+
+# Data storage
+sqlcipher3 = "^0.5.0"  # Encrypted SQLite
+chromadb = "^0.4.0"     # Vector embeddings
+
+# Cryptography
+cryptography = "^42.0.0"
+
+# CLI
+rich = "^13.7.0"
+click = "^8.1.0"
+
+# Data processing
+pandas = "^2.0.0"
+numpy = "^1.26.0"
+
+# HTTP client (for market data)
+httpx = "^0.27.0"
+
+# Testing
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+```
+
+### Project Structure
+
+```
+sentinel/
+├── src/
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── base.py              # Base agent class
+│   │   ├── drift_agent.py       # Portfolio drift detection
+│   │   ├── tax_agent.py         # Tax optimization
+│   │   └── coordinator.py       # Multi-agent orchestration
+│   ├── data/
+│   │   ├── __init__.py
+│   │   ├── models.py            # Dataclasses (Portfolio, Holding, etc.)
+│   │   ├── storage.py           # SQLite + encryption wrapper
+│   │   ├── vector_store.py      # ChromaDB wrapper
+│   │   └── market_cache.py      # Pre-cached market data loader
+│   ├── security/
+│   │   ├── __init__.py
+│   │   ├── encryption.py        # Envelope encryption
+│   │   ├── rbac.py              # Role-based access control
+│   │   └── merkle.py            # Merkle chain implementation
+│   ├── state/
+│   │   ├── __init__.py
+│   │   ├── machine.py           # State machine (transitions lib)
+│   │   └── utility.py           # Utility function scoring
+│   ├── cli/
+│   │   ├── __init__.py
+│   │   └── interface.py         # Rich CLI
+│   └── main.py                  # Entry point
+├── data/
+│   ├── market_cache/            # Pre-cached JSON from Alpha Vantage
+│   ├── portfolios/              # Synthetic portfolio JSON files
+│   └── regulatory/              # Regulatory feed samples
+├── tests/
+│   ├── test_agents.py
+│   ├── test_utility.py
+│   ├── test_encryption.py
+│   └── test_state_machine.py
+├── docs/
+│   ├── ARCHITECTURE.md          # This document
+│   └── INTERVIEW_NOTES.md       # Talking points for GS interview
+├── pyproject.toml
+├── README.md
+└── .env.example                 # Master key, API keys (not committed)
+```
+
+---
+
+## Implementation Plan (Revised with OpenClaw Patterns)
+
+### Day 1: Foundation + Gateway Layer (Enhanced)
+
+**Goals**
+- Project setup with Poetry
+- **Typed Gateway with schema validation**
+- Data models (Portfolio, Holding, TaxLot)
+- Synthetic portfolios (3 JSON files)
+- SQLite schema + envelope encryption
+- **Context/Memory separation architecture**
+
+**Deliverables**
+- `src/gateway/gateway.py` with Pydantic event validation
+- `src/gateway/events.py` defining InputEvent types
+- `src/data/models.py` with complete dataclasses
+- `src/memory/context_manager.py` with hot/cold split
+- `src/memory/persistent.py` with hybrid search
+- `data/portfolios/portfolio_a.json` (Growth UHNW)
+- `data/portfolios/portfolio_b.json` (Conservative UHNW)
+- `data/portfolios/portfolio_c.json` (Liquidity event)
+- `src/security/encryption.py` with working encrypt/decrypt
+- `tests/test_gateway.py` passing
+
+**Success Criteria**
+```python
+# Gateway validates events
+gateway = Gateway()
+
+valid_event = MarketEventInput(
+    event_id="evt_001",
+    timestamp=datetime.utcnow(),
+    session_id="advisor:main",
+    affected_sectors=["Technology"],
+    magnitude=-0.04,
+    description="Tech selloff"
+)
+event_id = await gateway.submit(valid_event)
+assert event_id == "evt_001"
+
+# Invalid events rejected
+try:
+    invalid_event = {"garbage": "data"}
+    await gateway.submit(invalid_event)
+    assert False, "Should have raised ValidationError"
+except ValidationError:
+    pass
+
+# Context manager flushes to memory
+context_mgr = ContextManager(max_tokens=10_000)
+for i in range(50):  # Exceed token limit
+    context_mgr.add_to_context({"data": f"item_{i}"}, 500)
+
+assert len(context_mgr.memory.daily_log.read_text()) > 0  # Flushed to disk
+```
+
+---
+
+### Day 2: Proactive Inputs + Single Agent Loop (Enhanced)
+
+**Goals**
+- **Heartbeat, cron, and webhook support**
+- Drift agent prompt + schema
+- Claude API integration (Sonnet)
+- End-to-end: market event → drift detection → recommendation
+- Basic Merkle chain logging
+- **Dynamic skill injection**
+
+**Deliverables**
+- `src/gateway/inputs.py` with heartbeat/cron/webhook handlers
+- `src/agents/drift_agent.py` with structured output
+- `src/skills/skill_registry.py` with lazy loading
+- `src/security/merkle.py` with working chain
+- `tests/test_drift_agent.py` with mocked Claude responses
+- `tests/test_proactive_inputs.py`
+
+**Success Criteria**
+```python
+# Heartbeat triggers portfolio check
+heartbeat = HeartbeatInput(
+    event_id="heartbeat_001",
+    timestamp=datetime.utcnow(),
+    session_id="system:heartbeat",
+    portfolio_ids=["UHNW_001"]
+)
+
+await gateway.submit(heartbeat)
+# Should trigger drift check even without market event
+
+# Cron job schedules daily review
+scheduler.start()
+# Wait for 9 AM cron to fire (mock time in tests)
+assert gateway.queues["advisor:main"].qsize() > 0
+
+# Skills dynamically injected
+context = {"holdings": [holding_with_nvda_17_percent]}
+relevant_skills = skill_registry.discover_relevant_skills(context)
+assert "concentration_risk" in relevant_skills
+assert "wash_sale" not in relevant_skills  # No recent sales
+
+# Drift agent uses injected skills
+result = drift_agent.analyze(portfolio_id="UHNW_001")
+assert "concentration_risks" in result
+assert len(result["concentration_risks"]) > 0
+```
+
+---
+
+### Day 3: Session Boundaries + Tax Agent + Conflict (Enhanced)
+
+**Goals**
+- State machine with transitions lib
+- **Session-based security boundaries**
+- **Docker sandboxing for untrusted sessions**
+- Tax agent (wash sale detection)
+- NVDA conflict scenario (drift vs wash sale)
+- Utility function scoring (5 dimensions)
+
+**Deliverables**
+- `src/state/machine.py` with all states/transitions
+- `src/security/sessions.py` with SessionConfig and sandbox
+- `src/agents/tax_agent.py` with wash sale logic
+- `src/state/utility.py` with scoring function
+- Integration test: drift conflict with tax
+
+**Success Criteria**
+```python
+# Session boundaries enforced
+advisor_session = SessionConfig(
+    session_id="advisor:main",
+    session_type=SessionType.ADVISOR_MAIN,
+    sandbox_mode=False  # Trusted
+)
+
+analyst_session = SessionConfig(
+    session_id="analyst_001",
+    session_type=SessionType.ANALYST,
+    allowed_portfolios=["UHNW_001"],
+    sandbox_mode=True  # Sandboxed
+)
+
+# Advisor can access all portfolios
+assert advisor_session.rbac_context.has_permission(Permission.READ_CLIENT_PII)
+
+# Analyst cannot access PII
+assert not analyst_session.rbac_context.has_permission(Permission.READ_CLIENT_PII)
+
+# Sandbox executes in Docker
+sandbox = SandboxedExecution()
+result = await sandbox.execute_in_sandbox(
+    analyst_session,
+    lambda: drift_agent.analyze("UHNW_001")
+)
+assert result is not None  # Executed successfully in container
+
+# Tax agent detects wash sale
+tax_result = tax_agent.analyze(
+    portfolio_id="UHNW_001",
+    drift_recommendations=drift_result["recommended_trades"]
+)
+assert len(tax_result["wash_sale_violations"]) > 0
+```
+
+---
+
+### Day 4: Multi-Persona Routing + Coordinator + Canvas (Enhanced)
+
+**Goals**
+- Coordinator agent (Opus)
+- **Multi-persona routing by risk profile**
+- Parallel agent execution (asyncio)
+- **Canvas A2UI generation**
+- Recommendation synthesis
+- Complete Merkle chain (all state transitions)
+- RBAC scoping for agents
+
+**Deliverables**
+- `src/agents/coordinator.py` with hub-and-spoke dispatch
+- `src/routing/persona_router.py` with profile-based routing
+- `src/ui/canvas.py` with A2UI HTML generation
+- `src/security/rbac.py` with permission enforcement
+- End-to-end integration test
+
+**Success Criteria**
+```python
+# Persona routing works
+conservative_client = {"risk_tolerance": "conservative"}
+persona = router.route_to_persona(conservative_client)
+assert persona["utility_weights"].risk_reduction == 0.40  # Conservative emphasizes risk
+
+aggressive_client = {"risk_tolerance": "aggressive"}
+persona = router.route_to_persona(aggressive_client)
+assert persona["utility_weights"].urgency == 0.25  # Aggressive acts quickly
+
+# Coordinator uses correct persona
+coordinator = CoordinatorAgent(
+    api_key=os.getenv("ANTHROPIC_API_KEY"),
+    persona_router=router
+)
+
+result = await coordinator.execute_analysis(
+    portfolio_id="UHNW_001",
+    client_profile=conservative_client
+)
+# Should use conservative persona prompts
+
+# Canvas generates interactive UI
+canvas = CanvasGenerator()
+html = canvas.generate_recommendation_ui(
+    scenarios=result["recommendation_scenarios"],
+    utility_scores=utility_scores
+)
+assert 'a2ui-action="approve"' in html
+assert '<input type="range"' in html  # Interactive slider
+
+# UI actions trigger tool calls
+ui_action = {
+    "tool": "handle_ui_action",
+    "action": "approve",
+    "scenario_id": "substitute_amd"
+}
+response = coordinator.handle_ui_action(**ui_action)
+assert response["status"] == "approved"
+```
+
+---
+
+### Day 5: End-to-End Golden Path + Proactive Demo (Enhanced)
+
+**Goals**
+- Complete golden path demo (tech sector drop → AMD substitute)
+- **Proactive heartbeat demo** (detects drift without external event)
+- **Webhook demo** (SEC filing triggers analysis)
+- Canvas UI with interactive recommendations
+- Integrity verification
+- Documentation polish
+- Interview prep notes
+
+**Deliverables**
+- `src/main.py` orchestrating full demo
+- `src/demos/golden_path.py` with classic scenario
+- `src/demos/proactive_heartbeat.py` with scheduled check
+- `src/demos/webhook_trigger.py` with external event
+- `src/ui/canvas.py` with Rich + HTML output
+- `docs/INTERVIEW_NOTES.md` with talking points
+- Demo video (optional)
+
+**Success Criteria**
+```bash
+# Run golden path demo (reactive)
+$ poetry run python -m src.main --demo golden_path
+
+# Expected output:
+# 1. Market event: Tech sector -4%
+# 2. Gateway validates and queues event
+# 3. Portfolio analysis triggered
+# 4. Drift agent (with dynamic skills): NVDA concentration risk
+# 5. Tax agent: Wash sale violation
+# 6. Coordinator: 3 scenarios generated
+# 7. Utility scoring: AMD substitute ranked #1
+# 8. Canvas UI: Interactive sliders and approval buttons
+# 9. Merkle chain verified: 15 blocks, integrity OK
+
+# Run proactive heartbeat demo
+$ poetry run python -m src.main --demo heartbeat
+
+# Expected output:
+# 1. Heartbeat fires (no external event)
+# 2. System checks all portfolios
+# 3. Detects drift in Portfolio B (fixed income underweight)
+# 4. Generates recommendation proactively
+# 5. Advisor notified via dashboard
+
+# Run webhook demo
+$ poetry run python -m src.main --demo webhook
+
+# Expected output:
+# 1. Mock SEC filing webhook received
+# 2. Gateway parses and queues
+# 3. Checks if filing affects portfolio holdings
+# 4. NVDA 10-K filing detected
+# 5. Triggers analysis for affected portfolios
+# 6. Recommendation surfaced immediately
+
+# Verify Merkle chain
+$ poetry run python -m src.main --verify-merkle
+✓ Merkle chain integrity verified (15 blocks)
+✓ No tampering detected
+```
+
+**Canvas Output Verification**
+- Interactive recommendation cards rendered in browser
+- Utility score breakdowns visible
+- Range sliders functional (real-time recalculation)
+- Approve/What-If buttons send tool calls to agent
+- Session-specific views (analyst sees limited data)
+
+---
+
+## Interview Framing
+
+### Opening Statement
+
+> "I wanted to understand the AWM AI problem space deeply enough to have a real opinion on where AI adds the most value, so I built this prototype. Along the way, I studied production AI agent systems like OpenClaw and adapted their architectural patterns for enterprise wealth management. Here's what I learned."
+
+### Key Talking Points
+
+**1. Business Case First**
+
+"The typical UHNW advisor manages 40-60 relationships with $200M+ AUM. Portfolio monitoring is reactive—they review quarterly or when clients call. Sentinel makes it proactive:
+
+- **Advisor productivity**: 10x faster anomaly detection (15 minutes → 90 seconds)
+- **Tax alpha**: $50K-$200K annual tax savings per $50M portfolio (100-400 bps)
+- **Client retention**: Proactive outreach before losses exceed tolerance
+- **AUM growth**: Demonstrable value-add → referrals and asset consolidation
+
+But here's what makes it different from a simple alert system: **Sentinel doesn't just detect problems, it schedules its own check-ups.** Like OpenClaw's heartbeat system, it can wake up every 30 minutes and ask 'Should I be concerned about anything?' This means we catch portfolio drift *before* the market crashes, not after.
+
+Back-of-envelope: If 100 advisors manage $50B AUM and Sentinel captures 50 bps of annual tax alpha, that's $250M in client value. Retention lift of 2% on $50B = $1B AUM saved from attrition."
+
+**2. Technical Architecture (OpenClaw-Inspired)**
+
+"I designed Sentinel with architectural patterns proven in production AI agent systems:
+
+- **Gateway Layer**: Every input—market events, scheduled jobs, SEC filings—flows through a typed gateway with schema validation. This is OpenClaw's design: separate the messy world (data feeds, webhooks) from the clean world (agent reasoning).
+
+- **Context vs Memory Split**: Agents work with hot context (token-limited, expensive) but persist decisions to cold storage (unlimited, cheap). We flush important facts to markdown files with hybrid search—semantic for 'show me similar portfolio drifts' and keyword for exact ticker lookups.
+
+- **Session Boundaries**: Advisors get full access. Analysts run in sandboxed Docker containers with read-only permissions. If an untrusted query tries to delete client data, it only destroys the ephemeral container.
+
+- **Canvas (Agent-to-UI)**: Instead of static recommendations, the agent generates interactive HTML with range sliders. Advisors can adjust 'rebalancing intensity' and see real-time tax impact recalculations. Each UI action sends a tool call back to the agent.
+
+- **Explainability over black-box**: Utility functions make trade-offs transparent. Advisors see *why* the system recommends AMD over waiting 31 days—with explicit scores for risk reduction, tax savings, transaction costs."
+
+**3. What I Learned Building This**
+
+"Three key insights from adapting OpenClaw's architecture:
+
+**Proactive > Reactive**: The heartbeat pattern transformed how I think about monitoring. Instead of waiting for a -4% market drop, Sentinel can schedule itself: '9 AM daily portfolio review', '4:30 PM EOD tax reconciliation'. This catches slow-moving risks like concentration creep.
+
+**Memory Management is Critical**: I initially tried cramming everything into the LLM context window. Hit token limits immediately. OpenClaw's solution: split hot (current analysis) from cold (historical facts). Memory flush before compaction—extract key decisions to persistent markdown before summarizing old context. This enables long-running sessions.
+
+**Docker Sandboxing isn't Optional**: For enterprise deployment, you *cannot* give AI agents unrestricted access to production systems. OpenClaw's pattern: trusted 'main' session runs on host, untrusted sessions run in ephemeral containers. If an analyst's query goes rogue, it destroys the container, not the database.
+
+The big 'aha' moment: Conflict resolution is where multi-agent systems earn their keep. Single agents are easy. The magic happens when drift says 'sell NVDA' but tax says 'that's a wash sale violation'—and the utility function quantifies three alternatives with explicit trade-offs."
+
+**4. How I'd Structure the Engineering Team**
+
+"Two parallel workstreams inspired by OpenClaw's plugin architecture:
+
+- **Applied AI team**: Domain experts (former advisors, tax specialists) + ML engineers. They build agents, refine prompts, tune utility weights. Think of them as building 'skills'—markdown playbooks for wealth management scenarios.
+
+- **Platform team**: Infrastructure engineers owning the gateway, orchestration, security, observability. They ensure new agents plug into the hub-and-spoke pattern seamlessly. Docker runtime, RBAC enforcement, Merkle chain integrity.
+
+- **Plugin model**: Adapters for new data sources (custodian APIs, SEC EDGAR) and new agent capabilities (ESG screening, volatility analysis) can be dropped in without core system changes.
+
+Weekly integration cycles. Applied team ships new agents; platform team ensures they integrate safely."
+
+**5. Metrics I'd Track**
+
+Production metrics inspired by OpenClaw's monitoring:
+
+- **Advisor engagement**: % of recommendations reviewed within 24 hours
+- **Recommendation acceptance rate**: Target >60% approval rate
+- **Tax alpha captured**: Dollars saved per $1M AUM
+- **False positive rate**: Recommendations that get rejected (tune to <20%)
+- **Audit trail integrity**: 100% Merkle chain verification
+- **Session security**: Zero sandbox escapes
+- **Context efficiency**: Token usage per recommendation (optimize via skill injection)
+- **Heartbeat detection rate**: % of issues caught proactively vs reactively
+
+**6. Production Readiness Roadmap**
+
+"Here's what I'd prioritize after POC validation:
+
+**Month 1-2: Security Hardening**
+- Multi-tenant session isolation (shared infrastructure, isolated data)
+- Distributed ledger (Hyperledger Fabric) for cross-party audit trails
+- Secret detection and redaction before memory persistence
+
+**Month 3-4: Proactive Intelligence**
+- Webhook adapters: SEC EDGAR, FINRA, earnings calendars
+- Cron orchestrator: APScheduler + timezone-aware scheduling
+- Agent-to-agent workflows: Drift finishes → queues tax analysis
+
+**Month 5-6: Advisor UX**
+- Canvas UI: Interactive dashboards with real-time recalculation
+- Mobile alerts: Push notifications for high-urgency recommendations
+- Voice interface: Natural language queries ('Show me portfolios with tech >30%')
+
+**Month 7-9: Scale & Observability**
+- Kubernetes deployment with autoscaling
+- OpenTelemetry instrumentation
+- Synthetic portfolio testing (backtesting framework)
+
+The key is treating this like an operating system for wealth management—not a monolithic app. New skills, new data sources, new agent types should plug in via well-defined interfaces."
+
+### Architectural Comparison: Sentinel vs OpenClaw
+
+| Dimension | OpenClaw (Personal Assistant) | Sentinel (Wealth Management) |
+|-----------|-------------------------------|------------------------------|
+| **Core Use Case** | Personal productivity, automation | Portfolio monitoring, tax optimization |
+| **User Type** | Individual power users | Financial advisors, UHNW clients |
+| **Security Model** | Main session (trusted) + sandboxed DMs | Multi-tenant with session isolation |
+| **Proactive Inputs** | Heartbeats, cron, webhooks | ✓ Adapted: 9 AM review, EOD tax, SEC webhooks |
+| **Context/Memory** | Daily logs + MEMORY.md (hybrid search) | ✓ Adapted: Hot context + cold storage + vector search |
+| **Gateway Layer** | WebSocket server with typed protocol | ✓ Adapted: Pydantic schemas + priority queues |
+| **Skill System** | 31K+ marketplace skills (Markdown SOPs) | ✓ Adapted: Dynamic skill injection (concentration risk, wash sale) |
+| **Canvas (A2UI)** | Generate interactive HTML with action buttons | ✓ Adapted: Recommendation sliders, what-if scenarios |
+| **Agent Communication** | Sessions can message each other | ✓ Adapted: Drift → Tax workflow chaining |
+| **Deployment** | Local (macOS/Linux) or VPS (Docker) | ✓ Planned: K8s on cloud with multi-tenancy |
+| **Audit Trail** | Activity logs | ✓ Enhanced: Merkle chain + DLT path |
+| **Enterprise Readiness** | Solo/SMB focused | ✓ Extended: RBAC, sandbox, compliance |
+
+**Key Adaptations for Finance**:
+- OpenClaw's skill marketplace → Curated wealth management playbooks (no community uploads due to security)
+- OpenClaw's Docker sandbox → Extended for multi-tenant isolation
+- OpenClaw's memory system → Enhanced with regulatory compliance (retention policies, redaction)
+- OpenClaw's Canvas → Financial-specific widgets (utility score breakdowns, tax impact charts)
+
+---
+
+## Future Enhancements (Post-POC)
+
+### Production Hardening
+
+1. **Distributed Ledger**: Migrate Merkle chain to Hyperledger Fabric for multi-party verification (custodian, auditor, client)
+2. **Model Monitoring**: Track Claude API latency, token usage, structured output schema drift
+3. **Advisor Feedback Loop**: Capture rejection reasons → fine-tune agent prompts
+4. **Backtesting Framework**: Simulate recommendations on historical portfolios, measure alpha
+
+### Additional Agents
+
+5. **Volatility Agent**: Monitor VIX, implied volatility surfaces, hedge effectiveness
+6. **Compliance Agent**: Check 10b5-1 trading plans, insider trading windows, restricted lists
+7. **ESG Agent**: Enforce exclusions, track carbon footprint, align with impact goals
+8. **Liquidity Agent**: Model cash flow needs, stress-test withdrawal scenarios
+
+### UI/UX
+
+9. **React Dashboard**: Real-time portfolio monitoring, interactive scenario comparison
+10. **Mobile App**: Push notifications for high-urgency recommendations
+11. **Client Portal**: Transparent view of advisor actions (build trust)
+
+### Integration
+
+12. **Custodian APIs**: Connect to Schwab, Fidelity, Pershing for live holdings
+13. **Trading System**: Auto-execute approved recommendations via FIX protocol
+14. **CRM Integration**: Sync with Salesforce for advisor workflow
+
+---
+
+## Appendix
+
+### Glossary
+
+- **UHNW**: Ultra-High-Net-Worth ($30M+ investable assets)
+- **AUM**: Assets Under Management
+- **Wash Sale**: IRS rule disallowing loss deduction if substantially identical security purchased 30 days before or after sale
+- **Drift**: Deviation of current allocation from target allocation due to market movements
+- **Concentration Risk**: Single position exceeding prudent diversification limits (typically >10-15%)
+- **Tax Alpha**: Incremental after-tax returns from tax-efficient strategies
+- **Merkle Chain**: Linked data structure where each block contains hash of previous block (tamper-evident)
+- **Envelope Encryption**: Encrypting data with unique data encryption key (DEK), then encrypting DEK with master key
+
+### References
+
+- [Claude API Structured Outputs](https://docs.anthropic.com/claude/docs/tool-use)
+- [Python Transitions Library](https://github.com/pytransitions/transitions)
+- [ChromaDB Documentation](https://docs.trychroma.com/)
+- [SQLCipher](https://www.zetetic.net/sqlcipher/)
+- [IRS Wash Sale Rules](https://www.irs.gov/publications/p550#en_US_2023_publink1000107383)
+- [Hyperledger Fabric](https://www.hyperledger.org/use/fabric)
+
+---
+
+## Document Metadata
+
+**Created**: 2024-03-15  
+**Last Updated**: 2024-03-15  
+**Version**: 1.0  
+**Author**: Shubham  
+**Status**: Ready for Implementation  
+**Review**: Pending (Goldman Sachs AWM AI role interview prep)
+
+---
+
+*This architecture document is designed to be both a technical blueprint for Claude Code implementation and a demonstration artifact for the Goldman Sachs interview. It balances depth (production-ready patterns) with clarity (explainable to non-technical stakeholders).*

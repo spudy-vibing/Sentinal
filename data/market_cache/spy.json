@@ -1,0 +1,35 @@
+{
+  "ticker": "SPY",
+  "current_price": 510.00,
+  "previous_close": 507.00,
+  "change_percent": 0.59,
+  "high_52w": 515.00,
+  "low_52w": 410.00,
+  "beta": 1.00,
+  "dividend_yield": 1.35,
+  "pe_ratio": 24.5,
+  "market_cap": 480000000000,
+  "sector": "Diversified",
+  "industry": "S&P 500 ETF",
+  "exchange": "NYSE",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 507.00, "volume": 85000000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 505.00, "volume": 82000000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 508.00, "volume": 88000000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 510.00, "volume": 92000000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 507.00, "volume": 78000000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 504.00, "volume": 75000000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 502.00, "volume": 72000000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 500.00, "volume": 70000000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 498.00, "volume": 68000000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 495.00, "volume": 65000000}
+  ],
+  "news_headlines": [
+    "S&P 500 hits new all-time highs",
+    "Magnificent Seven drives market gains",
+    "Breadth improves as rally broadens",
+    "Q1 earnings season off to strong start",
+    "Market volatility remains subdued"
+  ]
+}

@@ -1,0 +1,298 @@
+{
+  "portfolio_id": "portfolio_b",
+  "client_id": "CLIENT_002",
+  "name": "Conservative Portfolio B - Income Focus",
+  "aum_usd": 80000000,
+  "last_rebalance": "2024-02-01T09:00:00",
+  "cash_available": 4000000,
+
+  "target_allocation": {
+    "us_equities": 0.20,
+    "international_equities": 0.10,
+    "fixed_income": 0.45,
+    "alternatives": 0.15,
+    "structured_products": 0.05,
+    "cash": 0.05
+  },
+
+  "client_profile": {
+    "client_id": "CLIENT_002",
+    "risk_tolerance": "conservative",
+    "tax_sensitivity": 0.70,
+    "concentration_limit": 0.10,
+    "rebalancing_frequency": "monthly"
+  },
+
+  "holdings": [
+    {
+      "ticker": "JNJ",
+      "quantity": 30000,
+      "current_price": 155.00,
+      "market_value": 4650000,
+      "portfolio_weight": 0.058,
+      "cost_basis": 4200000,
+      "unrealized_gain_loss": 450000,
+      "sector": "Healthcare",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "JNJ_LOT_001",
+          "purchase_date": "2020-03-15T10:00:00",
+          "purchase_price": 140.00,
+          "quantity": 30000,
+          "cost_basis": 4200000
+        }
+      ]
+    },
+    {
+      "ticker": "PG",
+      "quantity": 25000,
+      "current_price": 165.00,
+      "market_value": 4125000,
+      "portfolio_weight": 0.052,
+      "cost_basis": 3750000,
+      "unrealized_gain_loss": 375000,
+      "sector": "Consumer Staples",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "PG_LOT_001",
+          "purchase_date": "2019-06-20T10:00:00",
+          "purchase_price": 150.00,
+          "quantity": 25000,
+          "cost_basis": 3750000
+        }
+      ]
+    },
+    {
+      "ticker": "KO",
+      "quantity": 50000,
+      "current_price": 62.00,
+      "market_value": 3100000,
+      "portfolio_weight": 0.039,
+      "cost_basis": 2750000,
+      "unrealized_gain_loss": 350000,
+      "sector": "Consumer Staples",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "KO_LOT_001",
+          "purchase_date": "2018-11-10T10:00:00",
+          "purchase_price": 55.00,
+          "quantity": 50000,
+          "cost_basis": 2750000
+        }
+      ]
+    },
+    {
+      "ticker": "VZ",
+      "quantity": 80000,
+      "current_price": 42.00,
+      "market_value": 3360000,
+      "portfolio_weight": 0.042,
+      "cost_basis": 4000000,
+      "unrealized_gain_loss": -640000,
+      "sector": "Communication Services",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "VZ_LOT_001",
+          "purchase_date": "2021-09-01T10:00:00",
+          "purchase_price": 50.00,
+          "quantity": 80000,
+          "cost_basis": 4000000
+        }
+      ]
+    },
+    {
+      "ticker": "XOM",
+      "quantity": 20000,
+      "current_price": 105.00,
+      "market_value": 2100000,
+      "portfolio_weight": 0.026,
+      "cost_basis": 1600000,
+      "unrealized_gain_loss": 500000,
+      "sector": "Energy",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "XOM_LOT_001",
+          "purchase_date": "2020-10-15T10:00:00",
+          "purchase_price": 80.00,
+          "quantity": 20000,
+          "cost_basis": 1600000
+        }
+      ]
+    },
+    {
+      "ticker": "VXUS",
+      "quantity": 150000,
+      "current_price": 58.00,
+      "market_value": 8700000,
+      "portfolio_weight": 0.109,
+      "cost_basis": 8250000,
+      "unrealized_gain_loss": 450000,
+      "sector": "Diversified",
+      "asset_class": "International Equities",
+      "tax_lots": [
+        {
+          "lot_id": "VXUS_LOT_001",
+          "purchase_date": "2021-01-20T10:00:00",
+          "purchase_price": 55.00,
+          "quantity": 150000,
+          "cost_basis": 8250000
+        }
+      ]
+    },
+    {
+      "ticker": "AGG",
+      "quantity": 200000,
+      "current_price": 98.00,
+      "market_value": 19600000,
+      "portfolio_weight": 0.245,
+      "cost_basis": 21000000,
+      "unrealized_gain_loss": -1400000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "AGG_LOT_001",
+          "purchase_date": "2021-06-15T10:00:00",
+          "purchase_price": 105.00,
+          "quantity": 200000,
+          "cost_basis": 21000000
+        }
+      ]
+    },
+    {
+      "ticker": "LQD",
+      "quantity": 100000,
+      "current_price": 108.00,
+      "market_value": 10800000,
+      "portfolio_weight": 0.135,
+      "cost_basis": 11500000,
+      "unrealized_gain_loss": -700000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "LQD_LOT_001",
+          "purchase_date": "2022-01-10T10:00:00",
+          "purchase_price": 115.00,
+          "quantity": 100000,
+          "cost_basis": 11500000
+        }
+      ]
+    },
+    {
+      "ticker": "TIP",
+      "quantity": 60000,
+      "current_price": 105.00,
+      "market_value": 6300000,
+      "portfolio_weight": 0.079,
+      "cost_basis": 6600000,
+      "unrealized_gain_loss": -300000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "TIP_LOT_001",
+          "purchase_date": "2021-11-20T10:00:00",
+          "purchase_price": 110.00,
+          "quantity": 60000,
+          "cost_basis": 6600000
+        }
+      ]
+    },
+    {
+      "ticker": "VNQ",
+      "quantity": 40000,
+      "current_price": 85.00,
+      "market_value": 3400000,
+      "portfolio_weight": 0.043,
+      "cost_basis": 3200000,
+      "unrealized_gain_loss": 200000,
+      "sector": "Real Estate",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "VNQ_LOT_001",
+          "purchase_date": "2020-08-10T10:00:00",
+          "purchase_price": 80.00,
+          "quantity": 40000,
+          "cost_basis": 3200000
+        }
+      ]
+    },
+    {
+      "ticker": "GLD",
+      "quantity": 30000,
+      "current_price": 190.00,
+      "market_value": 5700000,
+      "portfolio_weight": 0.071,
+      "cost_basis": 4800000,
+      "unrealized_gain_loss": 900000,
+      "sector": "Commodities",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "GLD_LOT_001",
+          "purchase_date": "2019-12-01T10:00:00",
+          "purchase_price": 160.00,
+          "quantity": 30000,
+          "cost_basis": 4800000
+        }
+      ]
+    },
+    {
+      "ticker": "IAU",
+      "quantity": 80000,
+      "current_price": 38.00,
+      "market_value": 3040000,
+      "portfolio_weight": 0.038,
+      "cost_basis": 2720000,
+      "unrealized_gain_loss": 320000,
+      "sector": "Commodities",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "IAU_LOT_001",
+          "purchase_date": "2020-04-15T10:00:00",
+          "purchase_price": 34.00,
+          "quantity": 80000,
+          "cost_basis": 2720000
+        }
+      ]
+    }
+  ],
+
+  "transactions": [
+    {
+      "transaction_id": "TXN_B_001",
+      "ticker": "AGG",
+      "action": "buy",
+      "quantity": 20000,
+      "price": 97.50,
+      "timestamp": "2024-02-20T11:00:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_B_002",
+      "ticker": "JNJ",
+      "action": "buy",
+      "quantity": 5000,
+      "price": 152.00,
+      "timestamp": "2024-02-10T14:30:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_B_003",
+      "ticker": "VZ",
+      "action": "sell",
+      "quantity": 10000,
+      "price": 43.50,
+      "timestamp": "2024-01-25T09:45:00",
+      "wash_sale_disallowed": 0
+    }
+  ]
+}

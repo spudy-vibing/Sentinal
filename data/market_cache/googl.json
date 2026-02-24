@@ -1,0 +1,35 @@
+{
+  "ticker": "GOOGL",
+  "current_price": 175.00,
+  "previous_close": 172.00,
+  "change_percent": 1.74,
+  "high_52w": 180.00,
+  "low_52w": 120.00,
+  "beta": 1.05,
+  "dividend_yield": 0.00,
+  "pe_ratio": 25.2,
+  "market_cap": 2150000000000,
+  "sector": "Technology",
+  "industry": "Internet Content & Information",
+  "exchange": "NASDAQ",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 172.00, "volume": 28000000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 170.00, "volume": 26000000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 173.00, "volume": 29000000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 175.00, "volume": 31000000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 172.00, "volume": 27000000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 168.00, "volume": 25000000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 165.00, "volume": 24000000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 162.00, "volume": 23000000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 160.00, "volume": 22000000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 158.00, "volume": 21000000}
+  ],
+  "news_headlines": [
+    "Google Gemini shows strong performance in enterprise",
+    "Search revenue stable despite AI competition concerns",
+    "YouTube Premium subscribers hit 100 million",
+    "Google Cloud narrows gap with Azure",
+    "Alphabet announces inaugural dividend"
+  ]
+}

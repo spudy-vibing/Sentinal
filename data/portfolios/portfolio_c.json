@@ -1,0 +1,199 @@
+{
+  "portfolio_id": "portfolio_c",
+  "client_id": "CLIENT_003",
+  "name": "Liquidity Event Portfolio C - Post-IPO Diversification",
+  "aum_usd": 30000000,
+  "last_rebalance": "2024-01-01T09:00:00",
+  "cash_available": 500000,
+
+  "target_allocation": {
+    "us_equities": 0.40,
+    "international_equities": 0.15,
+    "fixed_income": 0.25,
+    "alternatives": 0.10,
+    "structured_products": 0.05,
+    "cash": 0.05
+  },
+
+  "client_profile": {
+    "client_id": "CLIENT_003",
+    "risk_tolerance": "aggressive",
+    "tax_sensitivity": 0.95,
+    "concentration_limit": 0.20,
+    "rebalancing_frequency": "quarterly"
+  },
+
+  "holdings": [
+    {
+      "ticker": "META",
+      "quantity": 40000,
+      "current_price": 500.00,
+      "market_value": 20000000,
+      "portfolio_weight": 0.667,
+      "cost_basis": 4000000,
+      "unrealized_gain_loss": 16000000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "META_LOT_001",
+          "purchase_date": "2019-01-15T10:00:00",
+          "purchase_price": 50.00,
+          "quantity": 20000,
+          "cost_basis": 1000000
+        },
+        {
+          "lot_id": "META_LOT_002",
+          "purchase_date": "2020-06-01T10:00:00",
+          "purchase_price": 75.00,
+          "quantity": 10000,
+          "cost_basis": 750000
+        },
+        {
+          "lot_id": "META_LOT_003",
+          "purchase_date": "2021-03-15T10:00:00",
+          "purchase_price": 150.00,
+          "quantity": 5000,
+          "cost_basis": 750000
+        },
+        {
+          "lot_id": "META_LOT_004",
+          "purchase_date": "2022-11-01T10:00:00",
+          "purchase_price": 300.00,
+          "quantity": 5000,
+          "cost_basis": 1500000
+        }
+      ]
+    },
+    {
+      "ticker": "SPY",
+      "quantity": 8000,
+      "current_price": 510.00,
+      "market_value": 4080000,
+      "portfolio_weight": 0.136,
+      "cost_basis": 3600000,
+      "unrealized_gain_loss": 480000,
+      "sector": "Diversified",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "SPY_LOT_001",
+          "purchase_date": "2023-06-01T10:00:00",
+          "purchase_price": 450.00,
+          "quantity": 8000,
+          "cost_basis": 3600000
+        }
+      ]
+    },
+    {
+      "ticker": "VEA",
+      "quantity": 30000,
+      "current_price": 50.00,
+      "market_value": 1500000,
+      "portfolio_weight": 0.050,
+      "cost_basis": 1350000,
+      "unrealized_gain_loss": 150000,
+      "sector": "Diversified",
+      "asset_class": "International Equities",
+      "tax_lots": [
+        {
+          "lot_id": "VEA_LOT_001",
+          "purchase_date": "2023-08-15T10:00:00",
+          "purchase_price": 45.00,
+          "quantity": 30000,
+          "cost_basis": 1350000
+        }
+      ]
+    },
+    {
+      "ticker": "BND",
+      "quantity": 30000,
+      "current_price": 72.00,
+      "market_value": 2160000,
+      "portfolio_weight": 0.072,
+      "cost_basis": 2250000,
+      "unrealized_gain_loss": -90000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "BND_LOT_001",
+          "purchase_date": "2023-09-01T10:00:00",
+          "purchase_price": 75.00,
+          "quantity": 30000,
+          "cost_basis": 2250000
+        }
+      ]
+    },
+    {
+      "ticker": "SCHZ",
+      "quantity": 20000,
+      "current_price": 45.00,
+      "market_value": 900000,
+      "portfolio_weight": 0.030,
+      "cost_basis": 920000,
+      "unrealized_gain_loss": -20000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "SCHZ_LOT_001",
+          "purchase_date": "2023-10-15T10:00:00",
+          "purchase_price": 46.00,
+          "quantity": 20000,
+          "cost_basis": 920000
+        }
+      ]
+    },
+    {
+      "ticker": "GLD",
+      "quantity": 5000,
+      "current_price": 190.00,
+      "market_value": 950000,
+      "portfolio_weight": 0.032,
+      "cost_basis": 800000,
+      "unrealized_gain_loss": 150000,
+      "sector": "Commodities",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "GLD_LOT_001",
+          "purchase_date": "2023-07-01T10:00:00",
+          "purchase_price": 160.00,
+          "quantity": 5000,
+          "cost_basis": 800000
+        }
+      ]
+    }
+  ],
+
+  "transactions": [
+    {
+      "transaction_id": "TXN_C_001",
+      "ticker": "META",
+      "action": "sell",
+      "quantity": 2000,
+      "price": 485.00,
+      "timestamp": "2024-02-25T10:30:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_C_002",
+      "ticker": "SPY",
+      "action": "buy",
+      "quantity": 2000,
+      "price": 505.00,
+      "timestamp": "2024-02-25T10:35:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_C_003",
+      "ticker": "META",
+      "action": "sell",
+      "quantity": 3000,
+      "price": 520.00,
+      "timestamp": "2024-01-15T14:00:00",
+      "wash_sale_disallowed": 0
+    }
+  ]
+}

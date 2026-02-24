@@ -1,0 +1,35 @@
+{
+  "ticker": "META",
+  "current_price": 500.00,
+  "previous_close": 495.00,
+  "change_percent": 1.01,
+  "high_52w": 530.00,
+  "low_52w": 280.00,
+  "beta": 1.24,
+  "dividend_yield": 0.40,
+  "pe_ratio": 32.5,
+  "market_cap": 1280000000000,
+  "sector": "Technology",
+  "industry": "Internet Content & Information",
+  "exchange": "NASDAQ",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 495.00, "volume": 18000000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 490.00, "volume": 17000000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 498.00, "volume": 19000000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 505.00, "volume": 21000000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 510.00, "volume": 22000000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 502.00, "volume": 20000000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 495.00, "volume": 18000000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 488.00, "volume": 17000000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 480.00, "volume": 16000000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 475.00, "volume": 15000000}
+  ],
+  "news_headlines": [
+    "Meta declares first-ever dividend, stock surges",
+    "Instagram and WhatsApp revenue growth accelerates",
+    "Reality Labs losses narrow on Quest 3 sales",
+    "Meta AI assistant gains traction across platforms",
+    "Advertising efficiency improves with AI targeting"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "ticker": "AGG",
+  "current_price": 98.00,
+  "previous_close": 97.80,
+  "change_percent": 0.20,
+  "high_52w": 102.00,
+  "low_52w": 94.00,
+  "beta": 0.04,
+  "dividend_yield": 4.35,
+  "pe_ratio": null,
+  "market_cap": 92000000000,
+  "sector": "Fixed Income",
+  "industry": "Aggregate Bond ETF",
+  "exchange": "NYSE",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 97.80, "volume": 5500000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 97.50, "volume": 5200000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 98.00, "volume": 5600000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 98.20, "volume": 5800000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 97.90, "volume": 5100000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 97.60, "volume": 4900000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 97.40, "volume": 4700000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 97.20, "volume": 4500000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 97.00, "volume": 4300000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 96.80, "volume": 4100000}
+  ],
+  "news_headlines": [
+    "Bond market steadies after volatile January",
+    "Investment-grade spreads remain tight",
+    "Fed speakers signal data-dependent approach",
+    "Mortgage-backed securities rally",
+    "Fixed income allocations increase"
+  ]
+}

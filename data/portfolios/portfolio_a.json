@@ -1,0 +1,292 @@
+{
+  "portfolio_id": "portfolio_a",
+  "client_id": "CLIENT_001",
+  "name": "Growth Portfolio A - Tech Heavy",
+  "aum_usd": 50000000,
+  "last_rebalance": "2024-01-15T09:00:00",
+  "cash_available": 2500000,
+
+  "target_allocation": {
+    "us_equities": 0.35,
+    "international_equities": 0.15,
+    "fixed_income": 0.20,
+    "alternatives": 0.20,
+    "structured_products": 0.05,
+    "cash": 0.05
+  },
+
+  "client_profile": {
+    "client_id": "CLIENT_001",
+    "risk_tolerance": "moderate_growth",
+    "tax_sensitivity": 0.85,
+    "concentration_limit": 0.15,
+    "rebalancing_frequency": "quarterly"
+  },
+
+  "holdings": [
+    {
+      "ticker": "NVDA",
+      "quantity": 10000,
+      "current_price": 850.00,
+      "market_value": 8500000,
+      "portfolio_weight": 0.17,
+      "cost_basis": 5000000,
+      "unrealized_gain_loss": 3500000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "NVDA_LOT_001",
+          "purchase_date": "2023-01-15T10:00:00",
+          "purchase_price": 250.00,
+          "quantity": 5000,
+          "cost_basis": 1250000
+        },
+        {
+          "lot_id": "NVDA_LOT_002",
+          "purchase_date": "2023-06-01T10:00:00",
+          "purchase_price": 400.00,
+          "quantity": 3000,
+          "cost_basis": 1200000
+        },
+        {
+          "lot_id": "NVDA_LOT_003",
+          "purchase_date": "2023-09-15T10:00:00",
+          "purchase_price": 450.00,
+          "quantity": 2000,
+          "cost_basis": 900000
+        }
+      ]
+    },
+    {
+      "ticker": "AMD",
+      "quantity": 25000,
+      "current_price": 150.00,
+      "market_value": 3750000,
+      "portfolio_weight": 0.075,
+      "cost_basis": 4500000,
+      "unrealized_gain_loss": -750000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "AMD_LOT_001",
+          "purchase_date": "2023-03-20T10:00:00",
+          "purchase_price": 180.00,
+          "quantity": 25000,
+          "cost_basis": 4500000
+        }
+      ]
+    },
+    {
+      "ticker": "AAPL",
+      "quantity": 20000,
+      "current_price": 185.00,
+      "market_value": 3700000,
+      "portfolio_weight": 0.074,
+      "cost_basis": 2800000,
+      "unrealized_gain_loss": 900000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "AAPL_LOT_001",
+          "purchase_date": "2022-06-15T10:00:00",
+          "purchase_price": 140.00,
+          "quantity": 20000,
+          "cost_basis": 2800000
+        }
+      ]
+    },
+    {
+      "ticker": "MSFT",
+      "quantity": 8000,
+      "current_price": 420.00,
+      "market_value": 3360000,
+      "portfolio_weight": 0.067,
+      "cost_basis": 2400000,
+      "unrealized_gain_loss": 960000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "MSFT_LOT_001",
+          "purchase_date": "2022-09-01T10:00:00",
+          "purchase_price": 300.00,
+          "quantity": 8000,
+          "cost_basis": 2400000
+        }
+      ]
+    },
+    {
+      "ticker": "GOOGL",
+      "quantity": 15000,
+      "current_price": 175.00,
+      "market_value": 2625000,
+      "portfolio_weight": 0.053,
+      "cost_basis": 1875000,
+      "unrealized_gain_loss": 750000,
+      "sector": "Technology",
+      "asset_class": "US Equities",
+      "tax_lots": [
+        {
+          "lot_id": "GOOGL_LOT_001",
+          "purchase_date": "2023-02-10T10:00:00",
+          "purchase_price": 125.00,
+          "quantity": 15000,
+          "cost_basis": 1875000
+        }
+      ]
+    },
+    {
+      "ticker": "VEA",
+      "quantity": 150000,
+      "current_price": 50.00,
+      "market_value": 7500000,
+      "portfolio_weight": 0.15,
+      "cost_basis": 7000000,
+      "unrealized_gain_loss": 500000,
+      "sector": "Diversified",
+      "asset_class": "International Equities",
+      "tax_lots": [
+        {
+          "lot_id": "VEA_LOT_001",
+          "purchase_date": "2022-01-20T10:00:00",
+          "purchase_price": 46.67,
+          "quantity": 150000,
+          "cost_basis": 7000000
+        }
+      ]
+    },
+    {
+      "ticker": "BND",
+      "quantity": 100000,
+      "current_price": 72.00,
+      "market_value": 7200000,
+      "portfolio_weight": 0.144,
+      "cost_basis": 7500000,
+      "unrealized_gain_loss": -300000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "BND_LOT_001",
+          "purchase_date": "2021-11-15T10:00:00",
+          "purchase_price": 75.00,
+          "quantity": 100000,
+          "cost_basis": 7500000
+        }
+      ]
+    },
+    {
+      "ticker": "VCIT",
+      "quantity": 40000,
+      "current_price": 80.00,
+      "market_value": 3200000,
+      "portfolio_weight": 0.064,
+      "cost_basis": 3400000,
+      "unrealized_gain_loss": -200000,
+      "sector": "Fixed Income",
+      "asset_class": "Fixed Income",
+      "tax_lots": [
+        {
+          "lot_id": "VCIT_LOT_001",
+          "purchase_date": "2022-03-10T10:00:00",
+          "purchase_price": 85.00,
+          "quantity": 40000,
+          "cost_basis": 3400000
+        }
+      ]
+    },
+    {
+      "ticker": "VNQ",
+      "quantity": 50000,
+      "current_price": 85.00,
+      "market_value": 4250000,
+      "portfolio_weight": 0.085,
+      "cost_basis": 4000000,
+      "unrealized_gain_loss": 250000,
+      "sector": "Real Estate",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "VNQ_LOT_001",
+          "purchase_date": "2022-05-20T10:00:00",
+          "purchase_price": 80.00,
+          "quantity": 50000,
+          "cost_basis": 4000000
+        }
+      ]
+    },
+    {
+      "ticker": "GLD",
+      "quantity": 20000,
+      "current_price": 190.00,
+      "market_value": 3800000,
+      "portfolio_weight": 0.076,
+      "cost_basis": 3200000,
+      "unrealized_gain_loss": 600000,
+      "sector": "Commodities",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "GLD_LOT_001",
+          "purchase_date": "2022-08-15T10:00:00",
+          "purchase_price": 160.00,
+          "quantity": 20000,
+          "cost_basis": 3200000
+        }
+      ]
+    },
+    {
+      "ticker": "PDBC",
+      "quantity": 100000,
+      "current_price": 14.15,
+      "market_value": 1415000,
+      "portfolio_weight": 0.028,
+      "cost_basis": 1300000,
+      "unrealized_gain_loss": 115000,
+      "sector": "Commodities",
+      "asset_class": "Alternatives",
+      "tax_lots": [
+        {
+          "lot_id": "PDBC_LOT_001",
+          "purchase_date": "2023-01-05T10:00:00",
+          "purchase_price": 13.00,
+          "quantity": 100000,
+          "cost_basis": 1300000
+        }
+      ]
+    }
+  ],
+
+  "transactions": [
+    {
+      "transaction_id": "TXN_A_001",
+      "ticker": "NVDA",
+      "action": "sell",
+      "quantity": 2000,
+      "price": 870.00,
+      "timestamp": "2024-03-01T14:30:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_A_002",
+      "ticker": "AAPL",
+      "action": "buy",
+      "quantity": 5000,
+      "price": 178.00,
+      "timestamp": "2024-02-15T10:15:00",
+      "wash_sale_disallowed": 0
+    },
+    {
+      "transaction_id": "TXN_A_003",
+      "ticker": "BND",
+      "action": "buy",
+      "quantity": 10000,
+      "price": 73.50,
+      "timestamp": "2024-02-01T09:30:00",
+      "wash_sale_disallowed": 0
+    }
+  ]
+}

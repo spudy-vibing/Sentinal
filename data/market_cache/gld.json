@@ -1,0 +1,35 @@
+{
+  "ticker": "GLD",
+  "current_price": 190.00,
+  "previous_close": 188.50,
+  "change_percent": 0.80,
+  "high_52w": 195.00,
+  "low_52w": 168.00,
+  "beta": 0.08,
+  "dividend_yield": 0.00,
+  "pe_ratio": null,
+  "market_cap": 58000000000,
+  "sector": "Commodities",
+  "industry": "Gold ETF",
+  "exchange": "NYSE",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 188.50, "volume": 8000000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 187.00, "volume": 7500000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 189.00, "volume": 8200000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 191.00, "volume": 8800000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 190.00, "volume": 7800000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 188.00, "volume": 7200000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 186.00, "volume": 6800000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 185.00, "volume": 6500000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 184.00, "volume": 6200000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 183.00, "volume": 6000000}
+  ],
+  "news_headlines": [
+    "Gold hits new highs on geopolitical concerns",
+    "Central bank gold buying continues at record pace",
+    "Gold benefits from dollar weakness",
+    "Safe haven demand supports gold prices",
+    "ETF inflows return after months of outflows"
+  ]
+}

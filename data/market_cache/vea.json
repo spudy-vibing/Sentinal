@@ -1,0 +1,35 @@
+{
+  "ticker": "VEA",
+  "current_price": 50.00,
+  "previous_close": 49.80,
+  "change_percent": 0.40,
+  "high_52w": 52.50,
+  "low_52w": 43.00,
+  "beta": 0.92,
+  "dividend_yield": 3.15,
+  "pe_ratio": 14.2,
+  "market_cap": 115000000000,
+  "sector": "Diversified",
+  "industry": "International Equity ETF",
+  "exchange": "NYSE",
+  "last_updated": "2024-03-01T16:00:00",
+  "price_history": [
+    {"timestamp": "2024-02-29T16:00:00", "price": 49.80, "volume": 8500000},
+    {"timestamp": "2024-02-28T16:00:00", "price": 49.50, "volume": 8000000},
+    {"timestamp": "2024-02-27T16:00:00", "price": 50.00, "volume": 8200000},
+    {"timestamp": "2024-02-26T16:00:00", "price": 50.20, "volume": 8800000},
+    {"timestamp": "2024-02-23T16:00:00", "price": 49.90, "volume": 7500000},
+    {"timestamp": "2024-02-22T16:00:00", "price": 49.60, "volume": 7200000},
+    {"timestamp": "2024-02-21T16:00:00", "price": 49.40, "volume": 7000000},
+    {"timestamp": "2024-02-20T16:00:00", "price": 49.20, "volume": 6800000},
+    {"timestamp": "2024-02-16T16:00:00", "price": 49.00, "volume": 6500000},
+    {"timestamp": "2024-02-15T16:00:00", "price": 48.80, "volume": 6200000}
+  ],
+  "news_headlines": [
+    "European markets rally on ECB rate guidance",
+    "Developed markets outperform EM in Q1",
+    "Vanguard reports strong international equity inflows",
+    "Currency hedging costs ease for US investors",
+    "Japan equity exposure drives VEA performance"
+  ]
+}
