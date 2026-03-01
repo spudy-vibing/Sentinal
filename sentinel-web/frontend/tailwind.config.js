@@ -8,15 +8,18 @@ export default {
     extend: {
       // SENTINEL V2 — Refined Finance Color System
       colors: {
-        // Backgrounds - Clean, light, professional
-        'bg-primary': '#F8FAFC',
-        'bg-secondary': '#FFFFFF',
-        'bg-tertiary': '#F1F5F9',
-        'bg-elevated': '#FFFFFF',
+        // Backgrounds - Dark Terminal Theme (matches CSS variables)
+        'bg-primary': '#0A0F1C',
+        'bg-secondary': '#121A2F',
+        'bg-tertiary': '#1E293B',
+        'bg-elevated': '#1E293B',
 
-        // Accent (Navy Blue - trust, stability)
+        // Accent (Neon Blue - tech, precision)
         'accent': {
-          DEFAULT: '#1E40AF',
+          DEFAULT: '#3B82F6',
+          light: '#60A5FA',
+          dim: 'rgba(59, 130, 246, 0.15)',
+          glow: 'rgba(59, 130, 246, 0.25)',
           50: '#EFF6FF',
           100: '#DBEAFE',
           200: '#BFDBFE',
@@ -29,25 +32,25 @@ export default {
           900: '#1E3A8A',
         },
 
-        // Status Colors - Muted, professional
-        'success': '#059669',
-        'success-light': '#D1FAE5',
-        'warning': '#D97706',
-        'warning-light': '#FEF3C7',
-        'error': '#DC2626',
-        'error-light': '#FEE2E2',
-        'info': '#0284C7',
-        'info-light': '#E0F2FE',
+        // Status Colors - Vibrant for dark mode
+        'success': '#10B981',
+        'success-light': 'rgba(16, 185, 129, 0.15)',
+        'warning': '#F59E0B',
+        'warning-light': 'rgba(245, 158, 11, 0.15)',
+        'error': '#EF4444',
+        'error-light': 'rgba(239, 68, 68, 0.15)',
+        'info': '#0EA5E9',
+        'info-light': 'rgba(14, 165, 233, 0.15)',
 
-        // Text - High contrast for readability
-        'text-primary': '#0F172A',
-        'text-secondary': '#475569',
-        'text-muted': '#94A3B8',
+        // Text - High contrast for dark mode
+        'text-primary': '#F8FAFC',
+        'text-secondary': '#94A3B8',
+        'text-muted': '#64748B',
 
-        // Borders - Subtle, clean
-        'border-subtle': '#E2E8F0',
-        'border-default': '#CBD5E1',
-        'border-strong': '#94A3B8',
+        // Borders - Dark theme
+        'border-subtle': '#1E293B',
+        'border-default': '#334155',
+        'border-strong': '#475569',
       },
 
       // Typography

@@ -4,6 +4,12 @@ import { Check, Loader2, AlertTriangle, Brain, Clock } from 'lucide-react'
 type AgentType = 'coordinator' | 'drift' | 'tax' | 'compliance' | 'scenario'
 type AgentState = 'idle' | 'analyzing' | 'thinking' | 'debating' | 'complete' | 'error'
 
+interface ThinkingState {
+  text: string
+  lastUpdate: number
+  thoughts: string[]
+}
+
 interface AgentNodeProps {
   id: string
   name: string
@@ -11,7 +17,7 @@ interface AgentNodeProps {
   type: AgentType
   state: AgentState
   message: string | null
-  thinking: string | null
+  thinking: ThinkingState | null
   delay?: number
 }
 
@@ -44,7 +50,6 @@ const TYPE_COLORS: Record<AgentType, { border: string; bg: string; text: string 
 }
 
 export default function AgentNode({
-  id,
   name,
   description,
   type,
@@ -108,13 +113,12 @@ export default function AgentNode({
           repeat: isActive ? Infinity : 0,
           ease: 'easeInOut',
         }}
-        className={`absolute left-4 top-4 w-4 h-4 rounded-full border-2 ${
-          isActive
-            ? 'bg-accent border-accent'
-            : state === 'complete'
+        className={`absolute left-4 top-4 w-4 h-4 rounded-full border-2 ${isActive
+          ? 'bg-accent border-accent'
+          : state === 'complete'
             ? 'bg-success border-success'
             : 'bg-bg-tertiary border-border-default'
-        }`}
+          }`}
       />
 
       {/* Card */}
@@ -122,13 +126,12 @@ export default function AgentNode({
         animate={{
           borderColor: isActive ? 'rgba(0, 229, 204, 0.3)' : undefined,
         }}
-        className={`p-4 rounded-lg border transition-all duration-300 ${
-          isActive
-            ? 'bg-accent/5 border-accent/30 shadow-glow'
-            : state === 'complete'
+        className={`p-4 rounded-lg border transition-all duration-300 ${isActive
+          ? 'bg-accent/5 border-accent/30 shadow-glow'
+          : state === 'complete'
             ? `${colors.bg} ${colors.border}`
             : 'bg-bg-tertiary border-border-subtle'
-        }`}
+          }`}
       >
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
@@ -156,7 +159,7 @@ export default function AgentNode({
                     <span className="text-xs text-accent">Thinking...</span>
                   </div>
                   <p className="text-sm text-text-secondary font-mono">
-                    {thinking}
+                    {thinking.text}
                     <span className="inline-block w-2 h-3 bg-accent animate-pulse ml-0.5" />
                   </p>
                 </div>

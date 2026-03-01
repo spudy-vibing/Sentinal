@@ -195,13 +195,13 @@ export default function DebateDisplay() {
 
                   {/* Action Steps */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 border border-accent/20">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-bg-tertiary border border-accent/20">
                       <div className="p-1.5 rounded-md bg-error/10">
                         <TrendingDown className="w-4 h-4 text-error" />
                       </div>
                       <div className="flex-1">
                         <span className="text-sm font-medium text-text-primary">Sell NVDA</span>
-                        <p className="text-xs text-text-muted">Reduce concentration risk below 15% threshold</p>
+                        <p className="text-xs text-text-secondary">Reduce concentration risk below 15% threshold</p>
                       </div>
                       <span className="text-xs font-medium text-error">-2% position</span>
                     </div>
@@ -210,13 +210,13 @@ export default function DebateDisplay() {
                       <ArrowRight className="w-4 h-4 text-text-muted" />
                     </div>
 
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/50 border border-accent/20">
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-bg-tertiary border border-accent/20">
                       <div className="p-1.5 rounded-md bg-success/10">
                         <TrendingUp className="w-4 h-4 text-success" />
                       </div>
                       <div className="flex-1">
                         <span className="text-sm font-medium text-text-primary">Buy AMD</span>
-                        <p className="text-xs text-text-muted">Maintain tech exposure while avoiding wash sale</p>
+                        <p className="text-xs text-text-secondary">Maintain tech exposure while avoiding wash sale</p>
                       </div>
                       <span className="text-xs font-medium text-success">+2% position</span>
                     </div>

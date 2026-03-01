@@ -53,7 +53,7 @@ export default function ActiveAgentDisplay() {
               </div>
 
               {/* Thinking Stream */}
-              <div className="bg-white/50 rounded-lg p-3 border border-accent/20">
+              <div className="bg-bg-tertiary rounded-lg p-3 border border-accent/20">
                 <div className="flex items-start gap-2">
                   <span className="text-accent font-bold text-lg leading-none mt-0.5">›</span>
                   <div className="flex-1 min-w-0">

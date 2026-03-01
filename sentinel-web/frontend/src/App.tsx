@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import React, { useEffect } from 'react'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
@@ -10,8 +10,10 @@ import { useActivityStore } from './stores/activityStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboard'
 import { ToastProvider } from './components/ui/Toast'
 import ErrorBoundary from './components/ErrorBoundary'
+import CommandPalette from './components/CommandPalette'
 
 function AppContent() {
+  const navigate = useNavigate()
   const { connect, disconnect } = useWebSocket()
   const { setConnected } = useActivityStore()
   const connectedRef = React.useRef(false)
@@ -43,6 +45,7 @@ function AppContent() {
         <Route path="/war-room" element={<WarRoom />} />
         <Route path="/audit" element={<AuditTrail />} />
       </Routes>
+      <CommandPalette onNavigate={(path) => navigate(path)} />
     </Layout>
   )
 }

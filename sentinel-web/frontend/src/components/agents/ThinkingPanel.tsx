@@ -70,12 +70,12 @@ export default function ThinkingPanel({ agentName, expanded = true }: ThinkingPa
                 const agentType = agent.toLowerCase().includes('drift')
                   ? 'drift'
                   : agent.toLowerCase().includes('tax')
-                  ? 'tax'
-                  : agent.toLowerCase().includes('compliance')
-                  ? 'compliance'
-                  : agent.toLowerCase().includes('scenario')
-                  ? 'scenario'
-                  : 'coordinator'
+                    ? 'tax'
+                    : agent.toLowerCase().includes('compliance')
+                      ? 'compliance'
+                      : agent.toLowerCase().includes('scenario')
+                        ? 'scenario'
+                        : 'coordinator'
 
                 return (
                   <ThoughtStream
@@ -101,14 +101,20 @@ export default function ThinkingPanel({ agentName, expanded = true }: ThinkingPa
   )
 }
 
+interface ThinkingState {
+  text: string
+  lastUpdate: number
+  thoughts: string[]
+}
+
 interface ThoughtStreamProps {
   agentName: string
   agentType: 'coordinator' | 'drift' | 'tax' | 'compliance' | 'scenario'
-  thought: string
+  thought: ThinkingState
 }
 
 function ThoughtStream({ agentName, agentType, thought }: ThoughtStreamProps) {
-  const lines = thought.split('\n').filter(Boolean)
+  const lines = thought.thoughts || []
 
   return (
     <motion.div
@@ -176,7 +182,7 @@ export function ThinkingIndicator({ agentName }: { agentName: string }) {
         <span className="text-xs text-accent">Thinking...</span>
       </div>
       <p className="text-xs text-text-secondary font-mono line-clamp-2">
-        {thought}
+        {thought.text}
         <span className="inline-block w-1.5 h-3 bg-accent animate-pulse ml-0.5" />
       </p>
     </motion.div>

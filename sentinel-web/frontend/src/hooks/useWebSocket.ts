@@ -5,7 +5,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/activity'
 
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const {
     setConnected,
@@ -16,8 +16,6 @@ export function useWebSocket() {
     clearThinking,
     addDebateMessage,
     addMerkleBlock,
-    clearActivities,
-    clearAllThinking,
     setScenarios,
     setDebatePhase,
   } = useActivityStore()

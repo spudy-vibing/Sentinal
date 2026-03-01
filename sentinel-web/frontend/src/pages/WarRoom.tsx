@@ -11,22 +11,17 @@ import {
   Scale,
 } from 'lucide-react'
 import { useActivityStore } from '../stores/activityStore'
-
-const agents = [
-  { id: 'drift', name: 'Drift Agent', color: 'text-info', bgColor: 'bg-info/10' },
-  { id: 'tax', name: 'Tax Agent', color: 'text-success', bgColor: 'bg-success/10' },
-  { id: 'compliance', name: 'Compliance Agent', color: 'text-warning', bgColor: 'bg-warning/10' },
-  { id: 'scenario', name: 'Scenario Agent', color: 'text-accent', bgColor: 'bg-accent/10' },
-]
+import AgentDebateGraph from '../components/AgentDebateGraph'
 
 export default function WarRoom() {
   const [debateTopic, setDebateTopic] = useState<string | null>(null)
-  const [isDebating, setIsDebating] = useState(false)
-  const { debateMessages, clearDebate, addDebateMessage, setDebatePhase } = useActivityStore()
+  const [activeAgents, setActiveAgents] = useState<string[]>([])
+  const [recentMessage, setRecentMessage] = useState<{ agent_id: string, message: string } | undefined>()
+
+  const { debateMessages, clearDebate, addDebateMessage, debatePhase, setDebatePhase } = useActivityStore()
 
   const startDebate = (topic: string) => {
     setDebateTopic(topic)
-    setIsDebating(true)
     clearDebate()
     // In production, this would trigger a real debate via WebSocket
   }
@@ -73,15 +68,30 @@ export default function WarRoom() {
     setDebatePhase('opening', debateTopic?.replace('_', ' ') || 'Agent Debate')
 
     // Add messages with staggered timing for visual effect
-    demoMessages.forEach((msg, index) => {
-      setTimeout(() => {
-        addDebateMessage(msg)
-        // Set consensus phase after last message
-        if (index === demoMessages.length - 1) {
-          setTimeout(() => setDebatePhase('consensus'), 500)
-        }
-      }, index * 800)
-    })
+    let currentIndex = 0;
+
+    const interval = setInterval(() => {
+      if (currentIndex >= demoMessages.length) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setDebatePhase('consensus');
+          setActiveAgents([]);
+          setRecentMessage(undefined);
+        }, 500);
+        return;
+      }
+
+      const msg = demoMessages[currentIndex];
+
+      // Update graph state BEFORE adding message so animation starts
+      setActiveAgents([msg.agent_id]);
+      setRecentMessage({ agent_id: msg.agent_id, message: msg.message });
+
+      // Add the actual message to the store
+      addDebateMessage(msg);
+
+      currentIndex++;
+    }, 2500); // Slower sequence so graph animations are visible
   }
 
   return (
@@ -99,27 +109,13 @@ export default function WarRoom() {
         </div>
       </div>
 
-      {/* Agent Status Grid */}
-      <div className="grid grid-cols-4 gap-4">
-        {agents.map((agent, index) => (
-          <motion.div
-            key={agent.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`card p-4 border-l-2 ${agent.color.replace('text-', 'border-')}`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className={`font-medium ${agent.color}`}>{agent.name}</span>
-              <span className="status-dot status-dot-idle" />
-            </div>
-            <div className="text-xs text-text-muted">
-              Ready for analysis
-            </div>
-          </motion.div>
-        ))}
+      <div className="col-span-full">
+        <AgentDebateGraph
+          debatePhase={(debatePhase as 'idle' | 'opening' | 'debate' | 'consensus') || 'idle'}
+          activeAgents={activeAgents}
+          recentMessage={recentMessage}
+        />
       </div>
-
       {/* Debate Topics */}
       <div className="card p-6">
         <h2 className="text-lg font-medium text-text-primary mb-4 flex items-center gap-2">
@@ -181,7 +177,7 @@ export default function WarRoom() {
             </div>
 
             {/* Debate Messages */}
-            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+            <div className="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2">
               {debateMessages.length === 0 ? (
                 <div className="text-center py-8">
                   <Brain className="w-12 h-12 text-text-muted mx-auto mb-3 animate-pulse" />
@@ -222,11 +218,10 @@ function DebateTopicCard({ title, description, onClick, isActive }: DebateTopicC
   return (
     <button
       onClick={onClick}
-      className={`text-left p-4 rounded-lg border transition-all ${
-        isActive
-          ? 'bg-accent/10 border-accent/30 shadow-glow'
-          : 'bg-bg-tertiary border-border-subtle hover:border-border-default'
-      }`}
+      className={`text-left p-4 rounded-lg border transition-all ${isActive
+        ? 'bg-accent/10 border-accent/30 shadow-glow'
+        : 'bg-bg-tertiary border-border-subtle hover:border-border-default'
+        }`}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="font-medium text-text-primary">{title}</span>

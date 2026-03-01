@@ -34,8 +34,10 @@ class Settings(BaseSettings):
     ws_heartbeat_interval: int = 30
 
     class Config:
-        env_file = ".env"
+        # Look for .env in both backend/ and parent sentinel-web/ directories
+        env_file = [".env", "../.env"]
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Allow extra env vars not defined in Settings
 
 
 @lru_cache

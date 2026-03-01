@@ -1,13 +1,16 @@
 """
 SENTINEL V2 — Scenarios Router
 Handles scenario management and approval workflow.
+Now with Claude-powered dynamic scenario generation.
 """
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 import uuid
+import json
 import sys
 from pathlib import Path
 
@@ -17,8 +20,10 @@ sys.path.insert(0, str(project_root))
 
 # Import audit store for persistence
 from services.audit_store import audit_store
+from config import get_settings
 
 router = APIRouter()
+settings = get_settings()
 
 # In-memory scenario storage (would be database in production)
 scenario_store: Dict[str, Any] = {}
@@ -321,6 +326,216 @@ async def compare_scenarios(scenario_a: str, scenario_b: str):
             "recommendation": a.id if a.score > b.score else b.id
         }
     }
+
+
+class GenerateRequest(BaseModel):
+    """Request to generate scenarios dynamically."""
+    portfolio_id: str = "portfolio_a"
+    market_event: Optional[str] = "Tech sector down 4%"
+    drift_analysis: Optional[str] = None
+    tax_analysis: Optional[str] = None
+    risk_profile: str = "moderate"  # conservative, moderate, aggressive
+
+
+SCENARIO_GENERATION_PROMPT = """You are a UHNW portfolio advisor generating rebalancing scenarios.
+
+PORTFOLIO CONTEXT:
+{portfolio_context}
+
+MARKET EVENT:
+{market_event}
+
+DRIFT ANALYSIS:
+{drift_analysis}
+
+TAX ANALYSIS:
+{tax_analysis}
+
+RISK PROFILE: {risk_profile}
+
+Generate exactly 3 distinct scenarios to address this situation. Each scenario should offer a different risk/reward trade-off.
+
+Output as JSON array with this exact structure:
+[
+  {{
+    "title": "Short descriptive title",
+    "description": "2-3 sentence explanation of the approach",
+    "actions": [
+      {{"type": "sell|buy|hold", "ticker": "SYMBOL", "quantity": 1000, "rationale": "Why this action"}}
+    ],
+    "metrics": {{
+      "risk_reduction": 7.5,
+      "tax_savings": 8.0,
+      "goal_alignment": 7.0,
+      "transaction_cost": 3.0,
+      "urgency": 6.5
+    }},
+    "risks": ["Risk 1", "Risk 2"],
+    "expected_outcomes": {{"concentration_after": 0.13, "tax_impact": -5000}}
+  }}
+]
+
+Each metric is scored 1-10. Higher is better for all except transaction_cost (lower is better).
+The first scenario should be the most balanced/recommended approach.
+"""
+
+
+@router.post("/generate")
+async def generate_scenarios(request: GenerateRequest, req: Request):
+    """
+    Generate scenarios dynamically using Claude.
+    Streams progress updates via WebSocket.
+    """
+    ws_manager = req.app.state.ws_manager
+
+    # Build portfolio context
+    portfolio_context = f"Portfolio: {request.portfolio_id}"
+    try:
+        from src.data import load_portfolio
+        portfolio = load_portfolio(request.portfolio_id)
+        holdings_str = "\n".join([
+            f"- {h.ticker}: {h.portfolio_weight:.1%} (${h.market_value:,.0f})"
+            for h in portfolio.holdings[:10]
+        ])
+        portfolio_context = f"""
+Portfolio: {portfolio.name}
+AUM: ${portfolio.aum_usd:,.0f}
+Concentration Limit: {portfolio.client_profile.concentration_limit:.0%}
+
+Holdings:
+{holdings_str}
+"""
+    except Exception as e:
+        portfolio_context = f"Portfolio: {request.portfolio_id} (details unavailable: {e})"
+
+    # Broadcast that we're generating
+    await ws_manager.broadcast({
+        "type": "scenario_generating",
+        "data": {"status": "starting", "message": "Analyzing portfolio..."}
+    })
+
+    try:
+        import anthropic
+
+        if not settings.anthropic_api_key:
+            # Return demo scenarios if no API key
+            await ws_manager.broadcast({
+                "type": "scenario_generating",
+                "data": {"status": "complete", "message": "Using demo scenarios (no API key)"}
+            })
+            scenarios = get_demo_scenarios()
+            for s in scenarios:
+                scenario_store[s.id] = s
+            return {"scenarios": [s.model_dump() for s in scenarios], "source": "demo"}
+
+        client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+        # Build prompt
+        prompt = SCENARIO_GENERATION_PROMPT.format(
+            portfolio_context=portfolio_context,
+            market_event=request.market_event or "General portfolio review",
+            drift_analysis=request.drift_analysis or "NVDA at 17% exceeds 15% concentration limit",
+            tax_analysis=request.tax_analysis or "NVDA sold 15 days ago, wash sale window active",
+            risk_profile=request.risk_profile
+        )
+
+        await ws_manager.broadcast({
+            "type": "scenario_generating",
+            "data": {"status": "thinking", "message": "Claude analyzing scenarios..."}
+        })
+
+        # Call Claude
+        response = client.messages.create(
+            model=settings.default_model,
+            max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        # Parse response
+        response_text = response.content[0].text
+
+        # Extract JSON from response (handle markdown code blocks)
+        json_text = response_text
+        if "```json" in json_text:
+            json_text = json_text.split("```json")[1].split("```")[0]
+        elif "```" in json_text:
+            json_text = json_text.split("```")[1].split("```")[0]
+
+        scenarios_data = json.loads(json_text.strip())
+
+        # Convert to Scenario objects and store
+        scenarios = []
+        for i, s in enumerate(scenarios_data):
+            scenario = Scenario(
+                id=f"scenario_{uuid.uuid4().hex[:8]}",
+                title=s.get("title", f"Scenario {i+1}"),
+                description=s.get("description", ""),
+                score=calculate_score(s.get("metrics", {}), request.risk_profile),
+                is_recommended=(i == 0),
+                actions=[ActionStep(**a) for a in s.get("actions", [])],
+                metrics=ScenarioMetrics(**s.get("metrics", {
+                    "risk_reduction": 5, "tax_savings": 5, "goal_alignment": 5,
+                    "transaction_cost": 5, "urgency": 5
+                })),
+                risks=s.get("risks", []),
+                expected_outcomes=s.get("expected_outcomes", {})
+            )
+            scenarios.append(scenario)
+            scenario_store[scenario.id] = scenario
+
+        # Sort by score and mark recommended
+        scenarios.sort(key=lambda x: x.score, reverse=True)
+        for i, s in enumerate(scenarios):
+            s.is_recommended = (i == 0)
+            scenario_store[s.id] = s
+
+        await ws_manager.broadcast({
+            "type": "scenario_generating",
+            "data": {"status": "complete", "message": f"Generated {len(scenarios)} scenarios"}
+        })
+
+        # Also broadcast scenarios for UI update
+        await ws_manager.broadcast({
+            "type": "scenarios_ready",
+            "data": {"scenarios": [s.model_dump() for s in scenarios]}
+        })
+
+        return {"scenarios": [s.model_dump() for s in scenarios], "source": "claude"}
+
+    except json.JSONDecodeError as e:
+        await ws_manager.broadcast({
+            "type": "scenario_generating",
+            "data": {"status": "error", "message": "Failed to parse Claude response"}
+        })
+        # Fall back to demo scenarios
+        scenarios = get_demo_scenarios()
+        return {"scenarios": [s.model_dump() for s in scenarios], "source": "demo_fallback"}
+
+    except Exception as e:
+        await ws_manager.broadcast({
+            "type": "scenario_generating",
+            "data": {"status": "error", "message": str(e)}
+        })
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def calculate_score(metrics: Dict[str, float], risk_profile: str) -> float:
+    """Calculate utility score based on risk profile weights."""
+    weights = {
+        "conservative": {"risk": 0.40, "tax": 0.20, "goal": 0.20, "cost": 0.15, "urgency": 0.05},
+        "moderate": {"risk": 0.25, "tax": 0.30, "goal": 0.25, "cost": 0.10, "urgency": 0.10},
+        "aggressive": {"risk": 0.15, "tax": 0.20, "goal": 0.30, "cost": 0.10, "urgency": 0.25}
+    }.get(risk_profile, {"risk": 0.25, "tax": 0.25, "goal": 0.20, "cost": 0.15, "urgency": 0.15})
+
+    score = (
+        metrics.get("risk_reduction", 5) * weights["risk"] +
+        metrics.get("tax_savings", 5) * weights["tax"] +
+        metrics.get("goal_alignment", 5) * weights["goal"] +
+        (10 - metrics.get("transaction_cost", 5)) * weights["cost"] +
+        metrics.get("urgency", 5) * weights["urgency"]
+    ) * 10
+
+    return round(score, 1)
 
 
 def get_demo_scenarios() -> List[Scenario]:

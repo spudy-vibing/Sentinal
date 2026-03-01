@@ -39,6 +39,12 @@ interface MerkleBlock {
   block_hash: string
   event_type: string
   timestamp: string
+  actor?: string
+  action?: string
+  resource?: string
+  data?: Record<string, unknown>
+  session_id?: string
+  previous_hash?: string
 }
 
 interface Scenario {
@@ -124,6 +130,9 @@ interface ActivityState {
   portfolioSelectorOpen: boolean
   setPortfolioSelectorOpen: (open: boolean) => void
   togglePortfolioSelector: () => void
+
+  // Analysis trigger (for proactive alerts)
+  triggerAnalysis: () => void
 }
 
 // Helper to generate activity ID for deduplication
@@ -131,7 +140,7 @@ function getActivityId(activity: AgentActivity): string {
   return `${activity.agent_type}-${activity.status}-${activity.message.slice(0, 50)}`
 }
 
-export const useActivityStore = create<ActivityState>((set, get) => ({
+export const useActivityStore = create<ActivityState>((set) => ({
   // Connection
   isConnected: false,
   setConnected: (connected) => set({ isConnected: connected }),
@@ -296,4 +305,11 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
   portfolioSelectorOpen: false,
   setPortfolioSelectorOpen: (open) => set({ portfolioSelectorOpen: open }),
   togglePortfolioSelector: () => set((state) => ({ portfolioSelectorOpen: !state.portfolioSelectorOpen })),
+
+  // Analysis trigger - simulates clicking "Inject Event"
+  triggerAnalysis: () => {
+    // This will be called by AlertBanner to trigger analysis
+    // For now, it just emits an event that the EventInjector can listen to
+    window.dispatchEvent(new CustomEvent('sentinel:triggerAnalysis'))
+  },
 }))

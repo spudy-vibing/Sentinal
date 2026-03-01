@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Activity, Brain, AlertTriangle, Check, Clock, Loader2 } from 'lucide-react'
+import { Activity, AlertTriangle, Check, Clock, Loader2 } from 'lucide-react'
 import { useActivityStore } from '../stores/activityStore'
 
 export default function AgentActivityFeed() {
@@ -45,11 +45,10 @@ export default function AgentActivityFeed() {
                     key={idx}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: idx === state.thoughts.length - 1 ? 1 : 0.5 }}
-                    className={`text-sm font-mono ${
-                      idx === state.thoughts.slice(-3).length - 1
+                    className={`text-sm font-mono ${idx === state.thoughts.slice(-3).length - 1
                         ? 'text-text-primary'
                         : 'text-text-muted text-xs'
-                    }`}
+                      }`}
                   >
                     {idx === state.thoughts.slice(-3).length - 1 && (
                       <span className="text-accent mr-1">›</span>

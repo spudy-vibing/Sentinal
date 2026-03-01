@@ -4,9 +4,6 @@ import {
   Loader2,
   AlertCircle,
   Zap,
-  Brain,
-  Users,
-  FileCheck,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -15,9 +12,9 @@ import { useActivityStore } from '../stores/activityStore'
 
 // Extended store type for additional fields
 interface ExtendedActivityStore {
-  activities: ReturnType<typeof useActivityStore>['activities']
-  thinkingStream: ReturnType<typeof useActivityStore>['thinkingStream']
-  activeAgents: ReturnType<typeof useActivityStore>['activeAgents']
+  activities: any[]
+  thinkingStream: Record<string, any>
+  activeAgents: any[]
   debatePhase: string | null
   debateMessages: unknown[]
   scenarios: unknown[]
@@ -67,9 +64,8 @@ export default function ProgressTimeline() {
                 {/* Vertical Line (except last) */}
                 {index < steps.length - 1 && (
                   <div
-                    className={`absolute left-[8px] top-[28px] bottom-[-4px] w-[2px] ${
-                      step.status === 'complete' ? 'bg-success' : 'bg-border-subtle'
-                    }`}
+                    className={`absolute left-[8px] top-[28px] bottom-[-4px] w-[2px] ${step.status === 'complete' ? 'bg-success' : 'bg-border-subtle'
+                      }`}
                   />
                 )}
 
@@ -85,12 +81,11 @@ export default function ProgressTimeline() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium ${
-                        step.status === 'active' ? 'text-accent' :
+                      <span className={`text-sm font-medium ${step.status === 'active' ? 'text-accent' :
                         step.status === 'complete' ? 'text-text-primary' :
-                        step.status === 'error' ? 'text-error' :
-                        'text-text-muted'
-                      }`}>
+                          step.status === 'error' ? 'text-error' :
+                            'text-text-muted'
+                        }`}>
                         {step.label}
                       </span>
                       {step.status === 'active' && (
@@ -120,22 +115,20 @@ export default function ProgressTimeline() {
                             key={agent.name}
                             className="flex items-start gap-2 p-2 rounded-md bg-bg-tertiary"
                           >
-                            <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                              agent.status === 'complete' ? 'bg-success' :
+                            <div className={`w-2 h-2 rounded-full mt-1.5 ${agent.status === 'complete' ? 'bg-success' :
                               ['analyzing', 'thinking', 'active'].includes(agent.status) ? 'bg-accent animate-pulse' :
-                              agent.status === 'error' ? 'bg-error' :
-                              'bg-text-muted'
-                            }`} />
+                                agent.status === 'error' ? 'bg-error' :
+                                  'bg-text-muted'
+                              }`} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-medium text-text-primary">
                                   {agent.name}
                                 </span>
-                                <span className={`text-xs ${
-                                  ['analyzing', 'active'].includes(agent.status) ? 'text-accent' :
+                                <span className={`text-xs ${['analyzing', 'active'].includes(agent.status) ? 'text-accent' :
                                   agent.status === 'complete' ? 'text-success' :
-                                  'text-text-muted'
-                                }`}>
+                                    'text-text-muted'
+                                  }`}>
                                   {agent.status}
                                 </span>
                               </div>
@@ -236,8 +229,8 @@ function deriveSteps(store: ExtendedActivityStore): AnalysisStep[] {
     return {
       name,
       status: hasComplete ? 'complete' :
-              isActive || thinking ? 'analyzing' :
-              latestActivity ? latestActivity.status : 'pending',
+        isActive || thinking ? 'analyzing' :
+          latestActivity ? latestActivity.status : 'pending',
       thought: thinking?.thoughts?.[thinking.thoughts.length - 1]
     }
   })
@@ -255,8 +248,8 @@ function deriveSteps(store: ExtendedActivityStore): AnalysisStep[] {
       label: 'Agent Analysis',
       description: 'Specialized agents processing event',
       status: completedAnalysis.length === 3 ? 'complete' :
-              (hasThinking || hasActiveAgents || analysisActivities.length > 0) ? 'active' :
-              gatewayActivity ? 'pending' : 'pending',
+        (hasThinking || hasActiveAgents || analysisActivities.length > 0) ? 'active' :
+          gatewayActivity ? 'pending' : 'pending',
       agents: analysisAgents
     },
     {
@@ -264,8 +257,8 @@ function deriveSteps(store: ExtendedActivityStore): AnalysisStep[] {
       label: 'Consensus Building',
       description: 'Agents debating recommendations',
       status: debatePhase === 'consensus' ? 'complete' :
-              debatePhase || (debateMessages && debateMessages.length > 0) ? 'active' :
-              completedAnalysis.length === 3 ? 'pending' : 'pending'
+        debatePhase || (debateMessages && debateMessages.length > 0) ? 'active' :
+          completedAnalysis.length === 3 ? 'pending' : 'pending'
     },
     {
       id: 'recommend',

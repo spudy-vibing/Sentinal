@@ -17,6 +17,7 @@ import {
   Inbox,
 } from 'lucide-react'
 import { useActivityStore } from '../stores/activityStore'
+import RiskRadarChart from '../components/charts/RiskRadarChart'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const STORAGE_KEY = 'sentinel_approved_scenarios'
@@ -306,11 +307,10 @@ export default function Scenarios() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setSelectedScenarioId(scenario.id)}
-                className={`w-full text-left p-4 rounded-lg border transition-all ${
-                  selectedScenario?.id === scenario.id
+                className={`w-full text-left p-4 rounded-lg border transition-all ${selectedScenario?.id === scenario.id
                     ? 'bg-accent/10 border-accent/30 shadow-glow'
                     : 'bg-bg-elevated border-border-subtle hover:border-border-default'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-text-primary">
@@ -373,33 +373,46 @@ export default function Scenarios() {
                     </p>
                   </div>
 
-                  {/* Metrics */}
-                  <div className="grid grid-cols-5 gap-4">
-                    <MetricPill
-                      icon={Shield}
-                      label="Risk"
-                      value={selectedScenario.metrics.risk_reduction}
-                    />
-                    <MetricPill
-                      icon={DollarSign}
-                      label="Tax"
-                      value={selectedScenario.metrics.tax_savings}
-                    />
-                    <MetricPill
-                      icon={TrendingUp}
-                      label="Goals"
-                      value={selectedScenario.metrics.goal_alignment}
-                    />
-                    <MetricPill
-                      icon={Clock}
-                      label="Cost"
-                      value={10 - selectedScenario.metrics.transaction_cost}
-                    />
-                    <MetricPill
-                      icon={AlertTriangle}
-                      label="Urgency"
-                      value={selectedScenario.metrics.urgency}
-                    />
+                  {/* Metrics & Radar Chart */}
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Radar Chart */}
+                    <div className="w-full lg:w-1/2 bg-bg-tertiary/20 rounded-xl border border-border-subtle p-4">
+                      <h3 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-2">
+                        Utility Profile
+                      </h3>
+                      <RiskRadarChart metrics={selectedScenario.metrics} />
+                    </div>
+
+                    {/* Metric Pills */}
+                    <div className="w-full lg:w-1/2 grid grid-cols-2 gap-3">
+                      <MetricPill
+                        icon={Shield}
+                        label="Risk Reduction"
+                        value={selectedScenario.metrics.risk_reduction}
+                      />
+                      <MetricPill
+                        icon={DollarSign}
+                        label="Tax Savings"
+                        value={selectedScenario.metrics.tax_savings}
+                      />
+                      <MetricPill
+                        icon={TrendingUp}
+                        label="Goal Alignment"
+                        value={selectedScenario.metrics.goal_alignment}
+                      />
+                      <MetricPill
+                        icon={Clock}
+                        label="Cost Efficiency"
+                        value={10 - selectedScenario.metrics.transaction_cost}
+                      />
+                      <div className="col-span-2">
+                        <MetricPill
+                          icon={AlertTriangle}
+                          label="Action Urgency"
+                          value={selectedScenario.metrics.urgency}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -414,13 +427,12 @@ export default function Scenarios() {
                           className="flex items-center gap-3 p-3 bg-bg-tertiary rounded-md"
                         >
                           <span
-                            className={`badge ${
-                              action.type === 'buy'
+                            className={`badge ${action.type === 'buy'
                                 ? 'badge-success'
                                 : action.type === 'sell'
-                                ? 'badge-error'
-                                : 'badge-info'
-                            }`}
+                                  ? 'badge-error'
+                                  : 'badge-info'
+                              }`}
                           >
                             {action.type.toUpperCase()}
                           </span>

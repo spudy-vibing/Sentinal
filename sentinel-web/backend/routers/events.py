@@ -58,7 +58,7 @@ def _extract_metrics(utility_score) -> dict:
 
 class MarketEventRequest(BaseModel):
     """Request to inject a market event."""
-    event_type: Literal["tech_crash", "earnings_beat", "fed_rate", "custom"] = "tech_crash"
+    event_type: Literal["tech_crash", "earnings_beat", "fed_rate", "tax_review", "custom"] = "tech_crash"
     portfolio_id: str = "portfolio_a"
     magnitude: float = -0.04
     description: Optional[str] = None
@@ -92,6 +92,12 @@ PRESET_EVENTS = {
         "affected_sectors": ["Fixed Income", "Financials", "Real Estate"],
         "magnitude": -0.02,
         "description": "Federal Reserve signals additional rate hikes, markets retreat"
+    },
+    "tax_review": {
+        "affected_sectors": ["Technology"],
+        "magnitude": 0.0,
+        "affected_tickers": ["NVDA"],
+        "description": "Tax-loss harvesting opportunity review: NVDA wash sale window closing in 15 days"
     }
 }
 
@@ -176,6 +182,14 @@ async def get_presets():
                 "icon": "landmark",
                 "color": "amber",
                 "magnitude": -0.02
+            },
+            {
+                "id": "tax_review",
+                "name": "Tax Opportunities",
+                "description": "Review tax-loss harvesting and wash sale windows",
+                "icon": "calculator",
+                "color": "blue",
+                "magnitude": 0.0
             },
         ]
     }

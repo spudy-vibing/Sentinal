@@ -17,6 +17,8 @@ import EventInjector from '../components/EventInjector'
 import PortfolioMetrics from '../components/PortfolioMetrics'
 import ScenarioPreview from '../components/ScenarioPreview'
 import DebateDisplay from '../components/DebateDisplay'
+import AlertBanner from '../components/AlertBanner'
+import { StateMachineCompact } from '../components/StateMachineIndicator'
 import { useActivityStore } from '../stores/activityStore'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -95,6 +97,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Proactive Alert Banner */}
+      <AlertBanner />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -104,6 +109,9 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* State Machine Indicator */}
+          <StateMachineCompact />
+
           {/* Connection Status */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
             isConnected

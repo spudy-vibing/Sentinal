@@ -7,7 +7,6 @@ import {
   Hash,
   FileText,
   Check,
-  AlertTriangle,
   Search,
   Filter,
   ChevronDown,
@@ -184,6 +183,12 @@ export default function AuditTrail() {
     event_id: `ws_${i}`,
     event_type: b.event_type,
     timestamp: b.timestamp,
+    actor: b.actor,
+    action: b.action,
+    resource: b.resource,
+    data: b.data,
+    session_id: b.session_id,
+    previous_hash: b.previous_hash,
     current_hash: b.block_hash,
     block_hash: b.block_hash
   }))
@@ -435,11 +440,10 @@ export default function AuditTrail() {
 
                   {/* Block Content */}
                   <div
-                    className={`card p-4 border-l-2 cursor-pointer transition-all ${
-                      expandedBlock === block.event_id
-                        ? 'border-accent bg-accent/5'
-                        : 'border-accent/30 hover:border-accent/60'
-                    }`}
+                    className={`card p-4 border-l-2 cursor-pointer transition-all ${expandedBlock === block.event_id
+                      ? 'border-accent bg-accent/5'
+                      : 'border-accent/30 hover:border-accent/60'
+                      }`}
                     onClick={() => setExpandedBlock(
                       expandedBlock === block.event_id ? null : block.event_id
                     )}
@@ -541,14 +545,12 @@ export default function AuditTrail() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`card p-6 border-l-4 ${
-            verificationResult.valid ? 'border-success' : 'border-error'
-          }`}
+          className={`card p-6 border-l-4 ${verificationResult.valid ? 'border-success' : 'border-error'
+            }`}
         >
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              verificationResult.valid ? 'bg-success/10' : 'bg-error/10'
-            }`}>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${verificationResult.valid ? 'bg-success/10' : 'bg-error/10'
+              }`}>
               {verificationResult.valid ? (
                 <CheckCircle2 className="w-5 h-5 text-success" />
               ) : (
@@ -583,11 +585,10 @@ interface StatCardProps {
 function StatCard({ icon: Icon, label, value, status }: StatCardProps) {
   return (
     <div className="metric-card">
-      <Icon className={`w-5 h-5 mb-2 ${
-        status === 'success' ? 'text-success' :
+      <Icon className={`w-5 h-5 mb-2 ${status === 'success' ? 'text-success' :
         status === 'error' ? 'text-error' :
-        'text-text-muted'
-      }`} />
+          'text-text-muted'
+        }`} />
       <div className="metric-value">{value}</div>
       <div className="metric-label">{label}</div>
     </div>

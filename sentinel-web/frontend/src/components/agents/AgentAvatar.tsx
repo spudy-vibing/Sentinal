@@ -79,7 +79,6 @@ const SIZES = {
 
 export default function AgentAvatar({
   type,
-  name,
   size = 'md',
   isActive = false,
   isThinking = false,
