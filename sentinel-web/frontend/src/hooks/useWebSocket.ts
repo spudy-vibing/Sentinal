@@ -18,6 +18,7 @@ export function useWebSocket() {
     addMerkleBlock,
     setScenarios,
     setDebatePhase,
+    setDebateConsensus,
   } = useActivityStore()
 
   const handleMessage = useCallback(
@@ -77,7 +78,10 @@ export function useWebSocket() {
 
           case 'debate_consensus':
             console.log('Debate consensus:', data.data)
-            // Consensus message - can be handled by UI components listening to debate state
+            setDebateConsensus({
+              final_decision: data.data.final_decision || '',
+              key_points: data.data.key_points || [],
+            })
             break
 
           case 'scenario_approved':

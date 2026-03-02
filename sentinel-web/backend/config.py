@@ -27,8 +27,10 @@ class Settings(BaseSettings):
     project_root: Path = Path(__file__).parent.parent.parent
 
     # Agent Settings
-    default_model: str = "claude-3-haiku-20240307"
-    coordinator_model: str = "claude-3-haiku-20240307"
+    default_model: str = "claude-3-5-haiku-20241022"
+    coordinator_model: str = "claude-3-5-haiku-20241022"
+    agent_model: str = "claude-3-5-haiku-20241022"
+    use_real_agents: bool = True  # Auto-disabled at runtime if no API key
 
     # WebSocket
     ws_heartbeat_interval: int = 30

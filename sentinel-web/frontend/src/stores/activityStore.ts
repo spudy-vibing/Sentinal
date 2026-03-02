@@ -99,6 +99,8 @@ interface ActivityState {
   debateMessages: DebateMessage[]
   addDebateMessage: (message: DebateMessage) => void
   clearDebate: () => void
+  debateConsensus: { final_decision: string; key_points: string[] } | null
+  setDebateConsensus: (consensus: { final_decision: string; key_points: string[] } | null) => void
 
   // Merkle Chain
   merkleBlocks: MerkleBlock[]
@@ -270,7 +272,9 @@ export const useActivityStore = create<ActivityState>((set) => ({
     set((state) => ({
       debateMessages: [...state.debateMessages, message],
     })),
-  clearDebate: () => set({ debateMessages: [] }),
+  clearDebate: () => set({ debateMessages: [], debateConsensus: null }),
+  debateConsensus: null,
+  setDebateConsensus: (consensus) => set({ debateConsensus: consensus }),
 
   // Merkle Chain
   merkleBlocks: [],

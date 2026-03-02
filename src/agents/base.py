@@ -164,29 +164,33 @@ class BaseAgent(IAgent):
         if additional_context:
             system = f"{system}\n\n{additional_context}"
 
-        # Add output format instructions
-        schema_json = json.dumps(output_type.model_json_schema(), indent=2)
+        # Add output format instructions — use field listing instead of full
+        # JSON schema to avoid Haiku echoing $defs back
+        fields = list(output_type.model_fields.keys())
         system = f"""{system}
 
-You MUST respond with valid JSON that matches this schema:
-{schema_json}
+You MUST respond with a single valid JSON object with these top-level fields:
+{json.dumps(fields)}
 
-Respond ONLY with the JSON object, no additional text or markdown."""
+Do NOT include a JSON schema or $defs. Respond ONLY with the populated JSON object, no markdown fences or extra text."""
 
         # Log invocation
         self._log_invocation(user_prompt[:200])
 
-        # Call Claude
+        # Call Claude with assistant prefill to force JSON output
         response = self._client.messages.create(
             model=self._model,
             max_tokens=self._max_tokens,
             temperature=self._temperature,
             system=system,
-            messages=[{"role": "user", "content": user_prompt}]
+            messages=[
+                {"role": "user", "content": user_prompt},
+                {"role": "assistant", "content": "{"},
+            ]
         )
 
-        # Extract text content
-        content = response.content[0].text
+        # Extract text content — prepend the "{" we prefilled
+        content = "{" + response.content[0].text
 
         # Parse JSON response
         try:

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageSquare, Scale, CheckCircle2, AlertTriangle, Users, ArrowRight, TrendingDown, TrendingUp, Sparkles } from 'lucide-react'
+import { MessageSquare, Scale, CheckCircle2, AlertTriangle, Users, Sparkles } from 'lucide-react'
 import { useActivityStore } from '../stores/activityStore'
 
 interface DebateMessageType {
@@ -15,7 +15,7 @@ interface DebateMessageType {
 }
 
 export default function DebateDisplay() {
-  const { debateMessages, debatePhase, debateQuestion } = useActivityStore()
+  const { debateMessages, debatePhase, debateQuestion, debateConsensus } = useActivityStore()
 
   if (!debatePhase && debateMessages.length === 0) {
     return null
@@ -189,54 +189,27 @@ export default function DebateDisplay() {
                     </span>
                   </div>
 
-                  <p className="text-sm text-text-secondary mb-4">
-                    Based on the multi-agent analysis and debate, we recommend the following action:
+                  <p className="text-sm text-text-secondary mb-3">
+                    {debateConsensus?.final_decision ||
+                      (debateMessages.filter(m => m.phase === 'synthesis')[0]?.message) ||
+                      'Based on the multi-agent analysis and debate, agents have reached consensus.'}
                   </p>
 
-                  {/* Action Steps */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-bg-tertiary border border-accent/20">
-                      <div className="p-1.5 rounded-md bg-error/10">
-                        <TrendingDown className="w-4 h-4 text-error" />
+                  {/* Key Points from consensus or synthesis */}
+                  {(() => {
+                    const points = debateConsensus?.key_points ||
+                      debateMessages.filter(m => m.phase === 'synthesis')[0]?.key_points || []
+                    return points.length > 0 ? (
+                      <div className="space-y-1.5 mb-3">
+                        {points.map((point: string, idx: number) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-bg-tertiary border border-accent/20">
+                            <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                            <span className="text-sm text-text-primary">{point}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-text-primary">Sell NVDA</span>
-                        <p className="text-xs text-text-secondary">Reduce concentration risk below 15% threshold</p>
-                      </div>
-                      <span className="text-xs font-medium text-error">-2% position</span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <ArrowRight className="w-4 h-4 text-text-muted" />
-                    </div>
-
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-bg-tertiary border border-accent/20">
-                      <div className="p-1.5 rounded-md bg-success/10">
-                        <TrendingUp className="w-4 h-4 text-success" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-text-primary">Buy AMD</span>
-                        <p className="text-xs text-text-secondary">Maintain tech exposure while avoiding wash sale</p>
-                      </div>
-                      <span className="text-xs font-medium text-success">+2% position</span>
-                    </div>
-                  </div>
-
-                  {/* Benefits Summary */}
-                  <div className="mt-4 pt-3 border-t border-accent/20 flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 text-success text-xs font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Reduces concentration
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 text-success text-xs font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Avoids wash sale
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-success/10 text-success text-xs font-medium">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Maintains exposure
-                    </span>
-                  </div>
+                    ) : null
+                  })()}
                 </div>
               </div>
             </div>

@@ -110,14 +110,18 @@ class TaxAgent(BaseAgent, ITaxAgent):
         session: Optional[SessionConfig] = None,
         merkle_chain: Optional[IMerkleChain] = None,
         api_key: Optional[str] = None,
+        model: Optional[str] = None,
     ):
-        super().__init__(
+        kwargs = dict(
             agent_type=AgentType.TAX,
             system_prompt=TAX_AGENT_SYSTEM_PROMPT,
             session=session,
             merkle_chain=merkle_chain,
             api_key=api_key,
         )
+        if model:
+            kwargs["model"] = model
+        super().__init__(**kwargs)
 
     @require_permission(Permission.READ_TAX_LOTS)
     async def analyze(
