@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+import logging
 import sys
 from pathlib import Path
 
@@ -76,8 +77,8 @@ async def list_portfolios():
             except Exception:
                 continue
 
-        # Add demo portfolios if none found
         if not portfolios:
+            logging.warning("No portfolios loaded from data files, falling back to hardcoded demo portfolios")
             portfolios = [
                 PortfolioSummary(
                     portfolio_id="portfolio_a",

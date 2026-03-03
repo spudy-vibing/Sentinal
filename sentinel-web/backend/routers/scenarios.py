@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
+import logging
 import uuid
 import json
 import sys
@@ -503,15 +504,16 @@ Holdings:
         return {"scenarios": [s.model_dump() for s in scenarios], "source": "claude"}
 
     except json.JSONDecodeError as e:
+        logging.warning(f"Failed to parse Claude scenario response: {e}")
         await ws_manager.broadcast({
             "type": "scenario_generating",
-            "data": {"status": "error", "message": "Failed to parse Claude response"}
+            "data": {"status": "fallback", "message": "Failed to parse Claude response, using demo scenarios"}
         })
-        # Fall back to demo scenarios
         scenarios = get_demo_scenarios()
         return {"scenarios": [s.model_dump() for s in scenarios], "source": "demo_fallback"}
 
     except Exception as e:
+        logging.warning(f"Scenario generation failed, returning error: {e}")
         await ws_manager.broadcast({
             "type": "scenario_generating",
             "data": {"status": "error", "message": str(e)}

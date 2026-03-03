@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentRunnerConfig:
     """Configuration for the agent runner."""
-    use_real_agents: bool = False
+    use_real_agents: bool = True
     api_key: str = ""
     model: str = "claude-3-5-haiku-20241022"
 

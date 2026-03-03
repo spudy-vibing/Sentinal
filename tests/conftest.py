@@ -20,8 +20,72 @@ from src.contracts.schemas import (
     Transaction,
     TradeAction,
 )
-from src.contracts.stubs import StubMerkleChain
+from src.contracts.interfaces import IMerkleChain
 from src.gateway import Gateway
+
+import hashlib
+import json
+
+
+class StubMerkleChain(IMerkleChain):
+    """Stub Merkle chain for testing — lightweight in-memory implementation."""
+
+    def __init__(self):
+        self.blocks: list[dict] = []
+        self._add_genesis_block()
+
+    def _add_genesis_block(self):
+        genesis = {
+            "index": 0,
+            "event_type": "system_initialized",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "data": {"message": "Sentinel initialized"},
+            "previous_hash": "0" * 64,
+            "hash": self._hash({"index": 0, "previous_hash": "0" * 64})
+        }
+        self.blocks.append(genesis)
+
+    def _hash(self, data: dict) -> str:
+        return hashlib.sha256(
+            json.dumps(data, sort_keys=True, default=str).encode()
+        ).hexdigest()
+
+    def add_block(self, data: dict) -> str:
+        previous_hash = self.blocks[-1]["hash"]
+        block = {
+            "index": len(self.blocks),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "data": data,
+            "previous_hash": previous_hash,
+            "hash": ""
+        }
+        block["hash"] = self._hash(block)
+        self.blocks.append(block)
+        return block["hash"]
+
+    def verify_integrity(self) -> bool:
+        for i in range(1, len(self.blocks)):
+            if self.blocks[i]["previous_hash"] != self.blocks[i - 1]["hash"]:
+                return False
+            expected_hash = self._hash({
+                "index": self.blocks[i]["index"],
+                "timestamp": self.blocks[i]["timestamp"],
+                "data": self.blocks[i]["data"],
+                "previous_hash": self.blocks[i]["previous_hash"],
+                "hash": ""
+            })
+            if self.blocks[i]["hash"] != expected_hash:
+                return False
+        return True
+
+    def get_root_hash(self) -> str:
+        return self.blocks[-1]["hash"]
+
+    def get_block_count(self) -> int:
+        return len(self.blocks)
+
+    def export_chain(self) -> list[dict]:
+        return self.blocks.copy()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

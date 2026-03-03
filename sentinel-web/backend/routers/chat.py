@@ -71,10 +71,9 @@ async def send_message(request: ChatRequest):
         import anthropic
 
         if not settings.anthropic_api_key:
-            # Return mock response if no API key
             return ChatResponse(
-                response=get_mock_response(request.message),
-                context_used=["portfolio_data", "recent_analysis"]
+                response="[Offline Mode] " + get_mock_response(request.message),
+                context_used=["offline_mode"]
             )
 
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
@@ -148,12 +147,11 @@ async def stream_message(request: ChatRequest, req: Request):
         import anthropic
 
         if not settings.anthropic_api_key:
-            # Return mock streaming
             async def mock_generator():
-                response = get_mock_response(request.message)
+                response = "[Offline Mode] " + get_mock_response(request.message)
                 for word in response.split():
                     yield f"data: {json.dumps({'text': word + ' '})}\n\n"
-                yield f"data: {json.dumps({'done': True})}\n\n"
+                yield f"data: {json.dumps({'done': True, 'context_used': ['offline_mode']})}\n\n"
 
             return StreamingResponse(
                 mock_generator(),

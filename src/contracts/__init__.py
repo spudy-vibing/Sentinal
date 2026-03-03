@@ -1,13 +1,12 @@
 """
 SENTINEL CONTRACTS PACKAGE
 
-Central export point for all contracts, schemas, interfaces, and stubs.
+Central export point for all contracts, schemas, and interfaces.
 
 Usage:
     from src.contracts import Portfolio, Holding, DriftAgentOutput
     from src.contracts import IGateway, IDriftAgent, ICoordinator
     from src.contracts import Permission, SessionConfig, require_permission
-    from src.contracts import StubDriftAgent, StubStorage, StubMerkleChain
 """
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -132,35 +131,6 @@ from .security import (
 )
 
 # ═══════════════════════════════════════════════════════════════════════════
-# STUBS — Mock Implementations for Testing
-# ═══════════════════════════════════════════════════════════════════════════
-
-from .stubs import (
-    # Core
-    StubGateway,
-    StubDriftAgent,
-    StubTaxAgent,
-    StubCoordinator,
-    # Storage
-    StubStorage,
-    StubMerkleChain,
-    StubContextManager,
-    # Scoring
-    StubUtilityFunction,
-    # Security
-    StubSecurityEnforcer,
-    StubSandbox,
-    StubEncryption,
-    # State
-    StubStateMachine,
-    # Skills & Routing
-    StubSkillRegistry,
-    StubPersonaRouter,
-    # UI
-    StubCanvasGenerator,
-)
-
-# ═══════════════════════════════════════════════════════════════════════════
 # VERSION
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -247,20 +217,4 @@ __all__ = [
     "create_advisor_session",
     "create_analyst_session",
     "create_agent_session",
-    # Stubs
-    "StubGateway",
-    "StubDriftAgent",
-    "StubTaxAgent",
-    "StubCoordinator",
-    "StubStorage",
-    "StubMerkleChain",
-    "StubContextManager",
-    "StubUtilityFunction",
-    "StubSecurityEnforcer",
-    "StubSandbox",
-    "StubEncryption",
-    "StubStateMachine",
-    "StubSkillRegistry",
-    "StubPersonaRouter",
-    "StubCanvasGenerator",
 ]

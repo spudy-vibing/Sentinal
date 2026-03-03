@@ -7,6 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 from typing import Literal, Optional
 from datetime import datetime, timezone
+import json
 import uuid
 import asyncio
 import sys
@@ -379,6 +380,7 @@ async def process_event_with_streaming(
                 print("  [STEP 7] Running agent debate...", flush=True)
                 # Try LLM-powered debate, fall back to templates
                 if settings.anthropic_api_key:
+                    import anthropic
                     from services.debate_runner import DebateRunner
                     debate_runner = DebateRunner(
                         api_key=settings.anthropic_api_key,
@@ -389,8 +391,8 @@ async def process_event_with_streaming(
                     debate_question = f"Should we sell {top_risk.ticker} now?" if top_risk else "How should we rebalance?"
                     try:
                         await debate_runner.run_debate(debate_question, drift_findings, tax_findings, portfolio)
-                    except Exception as e:
-                        print(f"  [STEP 7] LLM debate failed ({e}), using templates", flush=True)
+                    except (RuntimeError, json.JSONDecodeError, ConnectionError, TimeoutError, anthropic.APIError) as e:
+                        print(f"  [STEP 7] LLM debate failed ({type(e).__name__}: {e}), using templates", flush=True)
                         await run_agent_debate(ws_manager, drift_findings, tax_findings)
                 else:
                     await run_agent_debate(ws_manager, drift_findings, tax_findings)
